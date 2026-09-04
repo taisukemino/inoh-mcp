@@ -7,27 +7,65 @@
 export interface ServerConfig {
   port: number;
   host: string;
+  /** Externally reachable base URL of this server, used in OAuth metadata. */
+  publicUrl: URL;
+  /** Supabase project URL. Its `/auth/v1` path is the OAuth issuer. */
+  supabaseUrl: URL;
+  /**
+   * Legacy shared secret for HS256-signed user JWTs. Optional: projects on
+   * asymmetric signing keys are verified through the JWKS instead.
+   */
+  supabaseJwtSecret: string | undefined;
 }
 
 const DEFAULT_PORT = 3333;
 const DEFAULT_HOST = '127.0.0.1';
 
+const readRequiredEnv = (name: string): string => {
+  const value = process.env[name];
+  if (value === undefined || value === '') {
+    throw new Error(`Missing required environment variable ${name}. See .env.example.`);
+  }
+  return value;
+};
+
+const readOptionalEnv = (name: string): string | undefined => {
+  const value = process.env[name];
+  return value === undefined || value === '' ? undefined : value;
+};
+
+const parseUrl = (name: string, rawValue: string): URL => {
+  try {
+    return new URL(rawValue);
+  } catch {
+    throw new Error(`Invalid ${name} value: "${rawValue}". Expected an absolute URL.`);
+  }
+};
+
+const parsePort = (rawPort: string | undefined): number => {
+  const port = rawPort === undefined ? DEFAULT_PORT : Number.parseInt(rawPort, 10);
+  if (!Number.isInteger(port) || port <= 0) {
+    throw new Error(`Invalid PORT value: "${rawPort}". Expected a positive integer.`);
+  }
+  return port;
+};
+
 /**
  * Parses server configuration from `process.env`.
  *
  * @returns Validated server configuration with defaults applied
- * @throws {Error} When PORT is set but is not a positive integer
+ * @throws {Error} When a required variable is missing or a value is malformed
  */
 export const loadServerConfig = (): ServerConfig => {
-  const rawPort = process.env.PORT;
-  const port = rawPort === undefined ? DEFAULT_PORT : Number.parseInt(rawPort, 10);
-
-  if (!Number.isInteger(port) || port <= 0) {
-    throw new Error(`Invalid PORT value: "${rawPort}". Expected a positive integer.`);
-  }
+  const port = parsePort(process.env.PORT);
+  const host = process.env.HOST ?? DEFAULT_HOST;
+  const rawPublicUrl = process.env.PUBLIC_URL ?? `http://${host}:${port}`;
 
   return {
     port,
-    host: process.env.HOST ?? DEFAULT_HOST,
+    host,
+    publicUrl: parseUrl('PUBLIC_URL', rawPublicUrl),
+    supabaseUrl: parseUrl('SUPABASE_URL', readRequiredEnv('SUPABASE_URL')),
+    supabaseJwtSecret: readOptionalEnv('SUPABASE_JWT_SECRET'),
   };
 };

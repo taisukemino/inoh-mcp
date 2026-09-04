@@ -1,5 +1,6 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { registerPingTool } from './ping.js';
+import { registerWhoamiTool } from './whoami.js';
 
 /**
  * Registers every tool the Inoh MCP server exposes.
@@ -11,4 +12,5 @@ import { registerPingTool } from './ping.js';
  */
 export const registerAllTools = (server: McpServer): void => {
   registerPingTool(server);
+  registerWhoamiTool(server);
 };

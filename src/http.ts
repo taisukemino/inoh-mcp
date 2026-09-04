@@ -1,10 +1,13 @@
 import type { Express, Request, Response } from 'express';
+import { requireBearerAuth } from '@modelcontextprotocol/sdk/server/auth/middleware/bearerAuth.js';
 import { createMcpExpressApp } from '@modelcontextprotocol/sdk/server/express.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
+import { buildProtectedResourceMetadata, createSupabaseTokenVerifier } from './auth/index.js';
+import type { ServerConfig } from './config.js';
+import { HEALTH_PATH, MCP_PATH } from './constants.js';
 import { createInohMcpServer } from './server.js';
 
-const MCP_PATH = '/mcp';
-const HEALTH_PATH = '/health';
+const PROTECTED_RESOURCE_METADATA_PATH = '/.well-known/oauth-protected-resource';
 
 const JSON_RPC_INTERNAL_ERROR = -32603;
 const JSON_RPC_METHOD_NOT_ALLOWED = -32000;
@@ -45,19 +48,34 @@ const handleMcpMethodNotAllowed = (_request: Request, response: Response): void 
 };
 
 /**
- * Creates the Express app that exposes the MCP endpoint and a health check.
+ * Creates the Express app that exposes the MCP endpoint, OAuth discovery
+ * metadata, and a health check.
  *
- * @param host - Interface the app will bind to; drives DNS-rebinding protection
+ * @param config - Server configuration
  * @returns A configured Express application
  */
-export const createHttpApp = (host: string): Express => {
-  const app = createMcpExpressApp({ host });
+export const createHttpApp = (config: ServerConfig): Express => {
+  const app = createMcpExpressApp({ host: config.host });
+  const metadata = buildProtectedResourceMetadata(config);
+  const tokenVerifier = createSupabaseTokenVerifier(config);
+  const requireSignedInUser = requireBearerAuth({
+    verifier: tokenVerifier,
+    resourceMetadataUrl: metadata.metadataUrl,
+  });
 
   app.get(HEALTH_PATH, (_request, response) => {
     response.json({ status: 'ok' });
   });
 
-  app.post(MCP_PATH, handleMcpPost);
+  // Reason: the spec puts the metadata at a path mirroring the resource, but
+  // some clients still probe the root form, so serve both.
+  const serveMetadata = (_request: Request, response: Response): void => {
+    response.json(metadata.document);
+  };
+  app.get(`${PROTECTED_RESOURCE_METADATA_PATH}${MCP_PATH}`, serveMetadata);
+  app.get(PROTECTED_RESOURCE_METADATA_PATH, serveMetadata);
+
+  app.post(MCP_PATH, requireSignedInUser, handleMcpPost);
   // Reason: GET (server-initiated SSE) and DELETE (session teardown) only make
   // sense in stateful mode, so they are rejected explicitly.
   app.get(MCP_PATH, handleMcpMethodNotAllowed);
