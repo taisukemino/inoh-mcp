@@ -107,11 +107,11 @@ claude mcp add --transport http inoh http://127.0.0.1:3333/mcp \
 
 ## Tools
 
-| Tool                | What it does                                                                                                        |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `ping`              | Connectivity check                                                                                                  |
-| `whoami`            | Returns the signed-in user's id and email                                                                           |
-| `search_dictionary` | Searches the Inoh dictionary by word: contains match, exact first, typo-tolerant fallback. Returns up to 20 entries |
+| Tool                | What it does                                                                                                                                                    |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ping`              | Connectivity check                                                                                                                                              |
+| `whoami`            | Returns the signed-in user's id and email                                                                                                                       |
+| `search_dictionary` | Searches the Inoh dictionary by word: contains match, exact first, typo-tolerant fallback. Returns up to 20 entries, each with a link to its inoh.app word page |
 
 Data tools call Supabase with the user's own bearer token, so Row Level Security applies as it does
 in the app. `search_dictionary` calls the `search_dictionary_words` Postgres function from
