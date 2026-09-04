@@ -15,7 +15,8 @@ Tracking issue: [PRI-20600](https://linear.app/tai-lab/issue/PRI-20600/mcp-serve
 
 ## Status
 
-Stateless Streamable HTTP server with bearer-token auth. Tools: `ping`, `whoami`. The OAuth
+Stateless Streamable HTTP server with bearer-token auth. Tools: `ping`, `whoami`,
+`search_dictionary`. The OAuth
 sign-in flow itself is handled by Supabase and still needs to be switched on (see
 [Authentication](#authentication)).
 
@@ -28,14 +29,14 @@ sign-in flow itself is handled by Supabase and still needs to be switched on (se
 
 ```bash
 pnpm install
-cp .env.example .env   # then fill in SUPABASE_URL and SUPABASE_JWT_SECRET
+cp .env.example .env   # then fill in SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY and SUPABASE_JWT_SECRET
 pnpm dev
 ```
 
 The server listens on `http://127.0.0.1:3333/mcp` by default. `GET /health` returns `{"status":"ok"}`.
 
 For local development point `SUPABASE_URL` at the local Supabase from `inoh-backend`
-(`http://127.0.0.1:54321`) and copy `JWT_SECRET` from `supabase status -o env`.
+(`http://127.0.0.1:54321`) and copy `PUBLISHABLE_KEY` and `JWT_SECRET` from `supabase status -o env`.
 
 ## Scripts
 
@@ -104,6 +105,18 @@ claude mcp add --transport http inoh http://127.0.0.1:3333/mcp \
   --header "Authorization: Bearer $TOKEN"
 ```
 
+## Tools
+
+| Tool                | What it does                                                                                                        |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `ping`              | Connectivity check                                                                                                  |
+| `whoami`            | Returns the signed-in user's id and email                                                                           |
+| `search_dictionary` | Searches the Inoh dictionary by word: contains match, exact first, typo-tolerant fallback. Returns up to 20 entries |
+
+Data tools call Supabase with the user's own bearer token, so Row Level Security applies as it does
+in the app. `search_dictionary` calls the `search_dictionary_words` Postgres function from
+`inoh-backend`, the same one the app's Discover search bar uses, so both stay in sync.
+
 ## Project layout
 
 ```
@@ -113,7 +126,8 @@ src/
   constants.ts   # route paths
   http.ts        # Express app: /mcp (bearer-protected), OAuth metadata, /health
   server.ts      # builds an McpServer with all tools registered
-  auth/          # Supabase JWT verifier, protected-resource metadata, user helper
+  auth/          # Supabase JWT verifier, protected-resource metadata, user helpers
+  supabase/      # per-request Supabase client acting as the signed-in user
   tools/         # one file per tool, allowlisted in tools/index.ts
 scripts/
   mint-local-token.ts  # dev helper behind `pnpm token:local`

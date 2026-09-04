@@ -23,3 +23,18 @@ export const getAuthenticatedUser = (authInfo: AuthInfo | undefined): Authentica
   const email = authInfo?.extra?.email;
   return { id: userId, email: typeof email === 'string' ? email : undefined };
 };
+
+/**
+ * Extracts the raw access token the MCP client authenticated with, so tools
+ * can act on Supabase as that user.
+ *
+ * @param authInfo - `extra.authInfo` passed to a tool callback
+ * @returns The verified bearer token
+ * @throws {Error} When the request reached a tool without passing bearer auth
+ */
+export const getUserAccessToken = (authInfo: AuthInfo | undefined): string => {
+  if (authInfo?.token === undefined || authInfo.token === '') {
+    throw new Error('Tool invoked without an authenticated user.');
+  }
+  return authInfo.token;
+};

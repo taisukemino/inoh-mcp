@@ -12,6 +12,11 @@ export interface ServerConfig {
   /** Supabase project URL. Its `/auth/v1` path is the OAuth issuer. */
   supabaseUrl: URL;
   /**
+   * Supabase publishable (anon) key. Sent as the `apikey` header on data
+   * requests; the caller's own bearer token still decides what RLS allows.
+   */
+  supabasePublishableKey: string;
+  /**
    * Legacy shared secret for HS256-signed user JWTs. Optional: projects on
    * asymmetric signing keys are verified through the JWKS instead.
    */
@@ -66,6 +71,7 @@ export const loadServerConfig = (): ServerConfig => {
     host,
     publicUrl: parseUrl('PUBLIC_URL', rawPublicUrl),
     supabaseUrl: parseUrl('SUPABASE_URL', readRequiredEnv('SUPABASE_URL')),
+    supabasePublishableKey: readRequiredEnv('SUPABASE_PUBLISHABLE_KEY'),
     supabaseJwtSecret: readOptionalEnv('SUPABASE_JWT_SECRET'),
   };
 };

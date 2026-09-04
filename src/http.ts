@@ -22,8 +22,12 @@ const sendJsonRpcError = (
   response.status(httpStatus).json({ jsonrpc: '2.0', error: { code, message }, id: null });
 };
 
-const handleMcpPost = async (request: Request, response: Response): Promise<void> => {
-  const server = createInohMcpServer();
+const handleMcpPost = async (
+  request: Request,
+  response: Response,
+  config: ServerConfig,
+): Promise<void> => {
+  const server = createInohMcpServer(config);
   // Reason: stateless mode (no session id) so any instance can serve any
   // request, which keeps horizontal scaling and serverless deploys simple.
   const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
@@ -83,7 +87,9 @@ export const registerHttpRoutes = (app: Express, config: ServerConfig): void => 
   app.get(`${PROTECTED_RESOURCE_METADATA_PATH}${MCP_PATH}`, serveMetadata);
   app.get(PROTECTED_RESOURCE_METADATA_PATH, serveMetadata);
 
-  app.post(MCP_PATH, requireSignedInUser, handleMcpPost);
+  app.post(MCP_PATH, requireSignedInUser, (request, response) =>
+    handleMcpPost(request, response, config),
+  );
   // Reason: GET (server-initiated SSE) and DELETE (session teardown) only make
   // sense in stateful mode, so they are rejected explicitly.
   app.get(MCP_PATH, handleMcpMethodNotAllowed);
