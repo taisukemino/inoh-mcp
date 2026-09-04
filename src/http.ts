@@ -1,6 +1,6 @@
-import type { Express, Request, Response } from 'express';
+import express, { type Express, type Request, type Response } from 'express';
 import { requireBearerAuth } from '@modelcontextprotocol/sdk/server/auth/middleware/bearerAuth.js';
-import { createMcpExpressApp } from '@modelcontextprotocol/sdk/server/express.js';
+import { localhostHostValidation } from '@modelcontextprotocol/sdk/server/middleware/hostHeaderValidation.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { buildProtectedResourceMetadata, createSupabaseTokenVerifier } from './auth/index.js';
 import type { ServerConfig } from './config.js';
@@ -8,6 +8,7 @@ import { HEALTH_PATH, MCP_PATH } from './constants.js';
 import { createInohMcpServer } from './server.js';
 
 const PROTECTED_RESOURCE_METADATA_PATH = '/.well-known/oauth-protected-resource';
+const LOOPBACK_HOSTS = ['127.0.0.1', 'localhost', '::1'];
 
 const JSON_RPC_INTERNAL_ERROR = -32603;
 const JSON_RPC_METHOD_NOT_ALLOWED = -32000;
@@ -48,14 +49,21 @@ const handleMcpMethodNotAllowed = (_request: Request, response: Response): void 
 };
 
 /**
- * Creates the Express app that exposes the MCP endpoint, OAuth discovery
- * metadata, and a health check.
+ * Mounts the MCP endpoint, OAuth discovery metadata, and a health check on
+ * an Express app.
  *
+ * @param app - The Express application to configure
  * @param config - Server configuration
- * @returns A configured Express application
  */
-export const createHttpApp = (config: ServerConfig): Express => {
-  const app = createMcpExpressApp({ host: config.host });
+export const registerHttpRoutes = (app: Express, config: ServerConfig): void => {
+  app.use(express.json());
+  // Reason: when bound to loopback for local development, reject requests
+  // whose Host header is not local (DNS rebinding protection). In production
+  // the server sits behind a public hostname, so this must not apply.
+  if (LOOPBACK_HOSTS.includes(config.host)) {
+    app.use(localhostHostValidation());
+  }
+
   const metadata = buildProtectedResourceMetadata(config);
   const tokenVerifier = createSupabaseTokenVerifier(config);
   const requireSignedInUser = requireBearerAuth({
@@ -80,6 +88,4 @@ export const createHttpApp = (config: ServerConfig): Express => {
   // sense in stateful mode, so they are rejected explicitly.
   app.get(MCP_PATH, handleMcpMethodNotAllowed);
   app.delete(MCP_PATH, handleMcpMethodNotAllowed);
-
-  return app;
 };
