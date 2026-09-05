@@ -1,8 +1,8 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import * as z from 'zod/v4';
 import { getUserAccessToken } from '../auth/index.js';
-import { INOH_WEB_APP_URL } from '../constants.js';
 import { createUserSupabaseClient, type SupabaseConnection } from '../supabase/index.js';
+import { buildWordPageUrl } from '../web-app-urls.js';
 
 /** Matches the app's MAX_WORD_LENGTH and the RPC's own query bound. */
 const MAX_QUERY_LENGTH = 50;
@@ -25,9 +25,6 @@ interface DictionarySearchResult extends DictionarySearchRow {
   /** Public word page in the Inoh web app, so clients can link to the full card. */
   url: string;
 }
-
-const buildWordPageUrl = (dictionaryId: string): string =>
-  `${INOH_WEB_APP_URL}/word/${dictionaryId}`;
 
 const toSearchResult = (row: DictionarySearchRow): DictionarySearchResult => ({
   ...row,

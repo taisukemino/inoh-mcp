@@ -1,5 +1,8 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { SupabaseConnection } from '../supabase/index.js';
+import { registerCreateCardTool } from './create-card.js';
+import { registerDeleteCardTool } from './delete-card.js';
+import { registerGetCardStatusTool } from './get-card-status.js';
 import { registerPingTool } from './ping.js';
 import { registerSearchDictionaryTool } from './search-dictionary.js';
 import { registerWhoamiTool } from './whoami.js';
@@ -17,4 +20,7 @@ export const registerAllTools = (server: McpServer, connection: SupabaseConnecti
   registerPingTool(server);
   registerWhoamiTool(server);
   registerSearchDictionaryTool(server, connection);
+  registerCreateCardTool(server, connection);
+  registerGetCardStatusTool(server, connection);
+  registerDeleteCardTool(server, connection);
 };
