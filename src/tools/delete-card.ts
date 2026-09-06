@@ -38,20 +38,29 @@ const findOwnCardsByWord = async (supabase: SupabaseClient, word: string): Promi
   return (data ?? []) as OwnedCard[];
 };
 
+/** The response supabase-js attaches to a FunctionsHttpError. */
+interface FunctionErrorContext {
+  json?: () => Promise<unknown>;
+}
+
 /**
  * Read the message the edge function put in its JSON body.
  *
  * Reason: supabase-js turns any non-2xx into a generic FunctionsHttpError whose
  * message is just the status. The useful part — "you can only delete cards you
  * created" — is in the response body, which it hands back untouched.
+ *
+ * Duck-typed rather than `instanceof Response`: this project compiles with
+ * `lib: ES2022` and no DOM, so the global `Response` type comes from
+ * @types/node and is not the same shape on every version.
  */
 const readFunctionErrorMessage = async (error: unknown): Promise<string | null> => {
-  const response = (error as { context?: Response }).context;
-  if (!(response instanceof Response)) return null;
+  const context = (error as { context?: FunctionErrorContext }).context;
+  if (typeof context?.json !== 'function') return null;
 
   try {
-    const body = (await response.json()) as { error?: string };
-    return body.error ?? null;
+    const body = (await context.json()) as { error?: string } | null;
+    return typeof body?.error === 'string' ? body.error : null;
   } catch {
     return null;
   }
