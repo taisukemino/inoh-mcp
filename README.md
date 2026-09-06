@@ -148,6 +148,17 @@ MCP client ──401──▶ /.well-known/oauth-protected-resource/mcp
 Unauthenticated requests get a `401` whose `WWW-Authenticate` header points at the metadata
 document, which lists Supabase as the authorization server. MCP clients discover the rest.
 
+### Origin validation
+
+The Streamable HTTP spec requires servers to validate `Origin` so a hostile page cannot drive the
+server from a victim's browser. `/mcp` therefore accepts a request only when it carries no `Origin`
+header at all — every native client (Claude Desktop, the CLI, Codex, Cursor) sends none — or when
+the origin is on the `ALLOWED_ORIGINS` list, which defaults to `https://inoh.app`. Anything else
+gets a `403`. `/health` and the OAuth metadata documents stay open to any origin.
+
+Bearer auth already makes this defence-in-depth rather than the main protection: credentials live in
+a header, not a cookie, so a random page cannot borrow a signed-in user's token.
+
 ### One-time setup still required
 
 1. **Supabase dashboard** (prod project): Authentication → OAuth Server → enable, allow dynamic

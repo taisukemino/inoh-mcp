@@ -5,6 +5,7 @@ import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/
 import { buildProtectedResourceMetadata, createSupabaseTokenVerifier } from './auth/index.js';
 import type { ServerConfig } from './config.js';
 import { HEALTH_PATH, MCP_PATH } from './constants.js';
+import { createOriginValidation } from './origin-validation.js';
 import { createInohMcpServer } from './server.js';
 
 const PROTECTED_RESOURCE_METADATA_PATH = '/.well-known/oauth-protected-resource';
@@ -87,7 +88,12 @@ export const registerHttpRoutes = (app: Express, config: ServerConfig): void => 
   app.get(`${PROTECTED_RESOURCE_METADATA_PATH}${MCP_PATH}`, serveMetadata);
   app.get(PROTECTED_RESOURCE_METADATA_PATH, serveMetadata);
 
-  app.post(MCP_PATH, requireSignedInUser, (request, response) =>
+  // Reason: origin validation guards the MCP endpoint only. The health check
+  // and the OAuth metadata documents are public by design and are read by
+  // clients that may send any origin, or none.
+  const validateOrigin = createOriginValidation(config.allowedOrigins);
+
+  app.post(MCP_PATH, validateOrigin, requireSignedInUser, (request, response) =>
     handleMcpPost(request, response, config),
   );
   // Reason: GET (server-initiated SSE) and DELETE (session teardown) only make

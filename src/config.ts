@@ -1,3 +1,5 @@
+import { INOH_WEB_APP_URL } from './constants.js';
+
 /**
  * Runtime configuration read from environment variables.
  *
@@ -21,6 +23,11 @@ export interface ServerConfig {
    * asymmetric signing keys are verified through the JWKS instead.
    */
   supabaseJwtSecret: string | undefined;
+  /**
+   * Browser origins allowed to call `/mcp`. Requests with no `Origin` header
+   * (every native MCP client) are always allowed; see origin-validation.ts.
+   */
+  allowedOrigins: string[];
 }
 
 const DEFAULT_PORT = 3333;
@@ -37,6 +44,21 @@ const readRequiredEnv = (name: string): string => {
 const readOptionalEnv = (name: string): string | undefined => {
   const value = process.env[name];
   return value === undefined || value === '' ? undefined : value;
+};
+
+/**
+ * Parses the comma-separated `ALLOWED_ORIGINS` list.
+ *
+ * Defaults to the Inoh web app alone, so an unrecognised browser client is
+ * refused until it is added deliberately rather than allowed by omission.
+ */
+const parseAllowedOrigins = (rawValue: string | undefined): string[] => {
+  if (rawValue === undefined) return [INOH_WEB_APP_URL];
+
+  return rawValue
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter((origin) => origin !== '');
 };
 
 const parseUrl = (name: string, rawValue: string): URL => {
@@ -73,5 +95,6 @@ export const loadServerConfig = (): ServerConfig => {
     supabaseUrl: parseUrl('SUPABASE_URL', readRequiredEnv('SUPABASE_URL')),
     supabasePublishableKey: readRequiredEnv('SUPABASE_PUBLISHABLE_KEY'),
     supabaseJwtSecret: readOptionalEnv('SUPABASE_JWT_SECRET'),
+    allowedOrigins: parseAllowedOrigins(readOptionalEnv('ALLOWED_ORIGINS')),
   };
 };
