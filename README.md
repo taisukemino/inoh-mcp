@@ -1,236 +1,101 @@
 # inoh-mcp
 
-Remote [MCP](https://modelcontextprotocol.io) server for [Inoh](https://inoh.app). It gives AI clients
-(Claude, ChatGPT, Codex, and any other MCP-compatible client) a controlled interface to Inoh
-vocabulary decks.
+The remote [MCP](https://modelcontextprotocol.io) server for [Inoh](https://inoh.app), a vocabulary
+app built on spaced repetition. Connect it to Claude, ChatGPT, Cursor or any MCP-capable client and
+your AI can look words up in the Inoh dictionary and build flashcards for you, in your own account,
+while you are talking to it.
+
+Ask for a word you just met in an article and it becomes a card with a definition, an example
+sentence, audio, an image and quiz options, ready to review in the Inoh app on your phone.
 
 ```
-AI client → inoh-mcp → Inoh backend (Supabase) → DB + AI services
+https://mcp.inoh.app/mcp
 ```
 
-The AI never gets arbitrary backend access. It can only call the tools explicitly registered in
-`src/tools/index.ts`.
+## Connecting
 
-## Status
+You need a free [Inoh](https://inoh.app) account. Sign-in happens in your browser through Inoh's
+normal email flow, so your AI client never sees your password, and you can revoke it later.
 
-Stateless Streamable HTTP server with bearer-token auth. Tools: `ping`, `whoami`,
-`search_dictionary`, `create_card`, `get_card_status`, `delete_card`. The OAuth
-sign-in flow itself is handled by Supabase and still needs to be switched on (see
-[Authentication](#authentication)).
-
-## Custom cards
-
-`create_card` gives a user their own card for a word the dictionary does not
-cover, or covers in the wrong sense. The card belongs to them alone: it never
-enters the shared dictionary, the Discover feed, or `search_dictionary`, and two
-users asking for the same word each get their own.
-
-It is a complete card, not a stub: definition, example sentence, three audio
-clips, image, phonetic and both sets of quiz distractors. That makes it
-quizzable in the Inoh app the moment it appears, alongside curated cards.
-
-```
-create_card({ word, context?, deckName? })
-  → inserts a card_requests row (destination 'custom', source 'mcp') under RLS
-  → returns { requestId, status: 'generating', trackAt, customCardsUsedThisMonth }
-
-  the inoh-backend card generator publishes it within ~10-20 seconds
-
-get_card_status({ requestId? })
-  → { progress: 'generating' | 'ready' | 'failed', cardUrl?, error? }
-```
-
-`context` is the sense to teach ("months of cash a startup has left, not the
-airport kind"). It is optional, but worth passing for any word with more than
-one meaning: nothing reviews the result before it reaches the user. `deckName`
-must name one of the user's existing decks; omit it for their default deck.
-
-### Deleting a card
-
-```
-delete_card({ word })  or  delete_card({ cardId })
-  → deletes the dictionary row, its place in the deck, and the media files
-```
-
-A user can delete a card **they** created and nothing else. Ask `delete_card` to
-remove a curated dictionary entry, by id or by word, and it refuses: those are
-shared with everyone, and dropping one from a deck is done in the Inoh app.
-
-Deletion is permanent and the tool says so, so confirm with the user first.
-Identify the card by `word` (the tool resolves it, and lists the options if the
-user has several custom cards for that word) or by the `cardId` from
-`get_card_status`.
-
-It does **not** refund the monthly allowance the card used. Otherwise a
-create/delete loop would mint unlimited cards. A card that was made and later
-deleted reports `progress: 'deleted'` from `get_card_status`, since its request
-row lives on as the quota ledger.
-
-The work happens in the `delete-custom-card` edge function, because Storage is
-service-role-only: this server could delete the row but never the image and
-audio. Media shared with another card (uploads are deduped by content hash) is
-kept.
-
-`delete_card` is the immediate path. Removing a custom card from a deck in the
-Inoh app (or Raycast, Obsidian, the browser extension) also deletes it, just not
-instantly: removal there is undoable, so inoh-backend defers the delete by ~10
-minutes and cancels it if the user undoes. Either way the card and its media end
-up gone.
-
-This server never holds a service-role key. It inserts the request as the
-signed-in user and RLS decides the rest, so neither the generation pipeline nor
-the quota below can be bypassed from here.
-
-**Monthly quota** (enforced by the `enforce_monthly_custom_card_limit` trigger
-in inoh-backend; `CUSTOM_CARD_MONTHLY_LIMITS` here only reports it):
-
-| Plan | Custom cards per calendar month |
-| ---- | ------------------------------- |
-| Free | 50                              |
-| Plus | 300                             |
-| Pro  | 1,000                           |
-
-Requests that failed do not count against the quota.
-
-## Requirements
-
-- Node.js 22+
-- pnpm 10
-
-## Setup
+Claude Code:
 
 ```bash
-pnpm install
-cp .env.example .env   # then fill in SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY and SUPABASE_JWT_SECRET
-pnpm dev
+claude mcp add --transport http inoh https://mcp.inoh.app/mcp
 ```
 
-The server listens on `http://127.0.0.1:3333/mcp` by default. `GET /health` returns `{"status":"ok"}`.
+Any other client: add `https://mcp.inoh.app/mcp` as a **Streamable HTTP** (remote) server. Clients
+register themselves automatically, so there is no API key to copy and no configuration file to edit.
+The first tool call opens a browser tab asking you to sign in and approve access.
 
-For local development point `SUPABASE_URL` at the local Supabase from `inoh-backend`
-(`http://127.0.0.1:54321`) and copy `PUBLISHABLE_KEY` and `JWT_SECRET` from `supabase status -o env`.
+## What you can ask for
 
-## Scripts
+| Tool                | What it does                                                   |
+| ------------------- | -------------------------------------------------------------- |
+| `search_dictionary` | Look a word or phrase up in the Inoh dictionary                |
+| `create_card`       | Build a complete flashcard for a word and file it in your deck |
+| `get_card_status`   | Check whether a card you asked for is ready                    |
+| `delete_card`       | Permanently delete a card you created, including its media     |
+| `whoami`            | Show which Inoh account you are signed in as                   |
+| `ping`              | Connectivity check                                             |
 
-| Script              | What it does                               |
-| ------------------- | ------------------------------------------ |
-| `pnpm dev`          | Run with `tsx` and restart on file changes |
-| `pnpm build`        | Compile TypeScript to `dist/`              |
-| `pnpm start`        | Run the compiled server from `dist/`       |
-| `pnpm typecheck`    | Type-check without emitting                |
-| `pnpm lint`         | ESLint                                     |
-| `pnpm lint:strict`  | ESLint, failing on warnings                |
-| `pnpm format`       | Prettier write                             |
-| `pnpm format:check` | Prettier check                             |
+Things people actually say:
 
-## Authentication
+- "Add _serendipity_ to my Inoh deck."
+- "I keep seeing _runway_ in startup writing. Make me a card for that meaning, not the airport one."
+- "Make cards for every word I got wrong in that article."
+- "Is my _platitudinous_ card ready yet?"
+- "Delete the _moat_ card I made earlier."
 
-Every request to `/mcp` must carry `Authorization: Bearer <Supabase user access token>`. The
-server verifies the token locally (signature, issuer `<SUPABASE_URL>/auth/v1`, audience
-`authenticated`, expiry) and hands the user id and email to tools via `getAuthenticatedUser`.
-Both signing schemes Supabase uses are accepted: HS256 with the project's shared secret, and
-ES256/RS256 via the project's JWKS.
+## Cards you create
 
-Sign-in uses Supabase Auth as the OAuth 2.1 authorization server, so the MCP server never sees
-an email or OTP code:
+A card you make here is yours alone. It never joins the shared Inoh dictionary, never appears in
+the Discover feed, and never shows up in anyone else's search. Two people asking for the same word
+each get their own.
 
-```
-MCP client ──401──▶ /.well-known/oauth-protected-resource/mcp
-           ──────▶ Supabase /auth/v1/oauth/authorize
-           ◀──────  redirect to Inoh web app /oauth/consent?authorization_id=…
-                      user signs in with the normal email OTP flow, approves
-           ◀──────  code → Supabase /auth/v1/oauth/token → access + refresh token
-           ──────▶ /mcp with Bearer token
-```
+It is a complete card rather than a stub: definition, example sentence, three audio clips, an image,
+phonetic transcription and both sets of quiz options. That means you can review it in the app the
+moment it appears, alongside curated cards. Making one takes about 20 seconds.
 
-Unauthenticated requests get a `401` whose `WWW-Authenticate` header points at the metadata
-document, which lists Supabase as the authorization server. MCP clients discover the rest.
+Tell the AI which sense you mean when a word has several. "Runway" as months of cash is a different
+card from "runway" at an airport, and nothing reviews the result before it reaches you.
 
-### Origin validation
+**How many you can make**, per calendar month:
 
-The Streamable HTTP spec requires servers to validate `Origin` so a hostile page cannot drive the
-server from a victim's browser. `/mcp` therefore accepts a request in two cases: it carries no `Origin`
-header at all, which is what every native client does (Claude Desktop, the CLI, Codex, Cursor), or
-its origin is on the `ALLOWED_ORIGINS` list, which defaults to `https://inoh.app`. Anything else
-gets a `403`. `/health` and the OAuth metadata documents stay open to any origin.
+| Plan | Cards per month |
+| ---- | --------------- |
+| Free | 50              |
+| Plus | 300             |
+| Pro  | 1,000           |
 
-Bearer auth already makes this defence-in-depth rather than the main protection: credentials live in
-a header, not a cookie, so a random page cannot borrow a signed-in user's token.
+Deleting a card removes it completely: the card, its place in your deck, and its image and audio
+files. It does not give back the monthly allowance it used. Removing one of your own cards from a
+deck inside the Inoh app also deletes it, a few minutes later, once the undo window has passed.
 
-### One-time setup still required
+## Privacy and data handling
 
-1. **Supabase dashboard** (prod project): Authentication → OAuth Server → enable, allow dynamic
-   client registration (Claude, ChatGPT and Cursor register themselves), set the authorization
-   path to `/oauth/consent`. Locally: `[auth.oauth_server]` in `inoh-backend/supabase/config.toml`.
-2. **Inoh web app**: add a `/oauth/consent` page that reuses the existing OTP sign-in, then calls
-   `supabase.auth.oauth.getAuthorizationDetails`, `approveAuthorization` / `denyAuthorization`
-   and redirects to the returned URL.
-3. Deploy this server and set `PUBLIC_URL` to its public base URL.
+- **The server stores nothing of its own.** It acts on your Inoh account using your access token,
+  and everything it reads or writes is scoped to you by the database's row level security.
+- **It holds no administrator credentials.** There is no service-role key here, so a bug in a tool
+  cannot reach past your own data.
+- **It logs no card content, no request bodies and no tokens.** The only things written to the log
+  are the startup line, rejected origins, and unexpected errors.
+- **Creating a card sends the word and the sense you described to Inoh's card pipeline**, which uses
+  OpenAI for the text, Google Cloud for the speech, and Google Gemini for the image. Nothing else
+  about you is sent.
+- **Your cards stay yours.** Deleting a card deletes the underlying media too, unless another card
+  legitimately shares the same file.
+- **You can revoke access at any time** from your Inoh account, and nothing here survives it.
 
-### Try it locally without OAuth
+## Security
 
-Mint a token signed with the local JWT secret and call the server directly:
+Requests are authenticated with OAuth 2.1 bearer tokens; an unauthenticated request gets a `401`
+pointing at the server's protected-resource metadata, which is how MCP clients discover the sign-in
+flow. The `/mcp` endpoint also validates the `Origin` header, so a web page cannot drive the server
+from your browser.
 
-```bash
-TOKEN=$(pnpm -s token:local --email you@example.com)
+Found something wrong? Open an issue on this repository.
 
-curl -s http://127.0.0.1:3333/mcp \
-  -H "Authorization: Bearer $TOKEN" \
-  -H 'Content-Type: application/json' \
-  -H 'Accept: application/json, text/event-stream' \
-  -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"whoami","arguments":{}}}'
-```
+## Development
 
-Or connect from Claude Code with the token as a header:
-
-```bash
-claude mcp add --transport http inoh http://127.0.0.1:3333/mcp \
-  --header "Authorization: Bearer $TOKEN"
-```
-
-## Tools
-
-| Tool                                                                                                | What it does                                                                                                                                                            |
-| --------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ping`                                                                                              | Connectivity check                                                                                                                                                      |
-| `whoami`                                                                                            | Returns the signed-in user's id and email                                                                                                                               |
-| `search_dictionary`                                                                                 | Searches the curated Inoh dictionary by word: contains match, exact first, typo-tolerant fallback. Returns up to 20 entries, each with a link to its inoh.app word page |
-| `create_card`                                                                                       | Generates a full card for the signed-in user and files it in their deck. Returns as soon as the work is queued; see [Custom cards](#custom-cards)                       |
-| `get_card_status`                                                                                   | Whether the user's cards are still generating, ready (with a link), failed (with the reason), or deleted                                                                |
-| `delete_card`                                                                                       | Permanently deletes one of the user's own custom cards, including its media. Refuses anything they did not create                                                       |
-| Data tools call Supabase with the user's own bearer token, so Row Level Security applies as it does |
-| in the app. `search_dictionary` calls the `search_dictionary_words` Postgres function from          |
-| `inoh-backend`, the same one the app's Discover search bar uses, so both stay in sync. It returns   |
-| curated entries only: a user's own custom cards are deliberately not searchable, since they are     |
-| already in their deck.                                                                              |
-
-## Project layout
-
-```
-src/
-  index.ts       # entry point: load config, start HTTP server
-  config.ts      # env parsing
-  constants.ts   # route paths and shared input bounds
-  origin-validation.ts # Origin allowlist for /mcp
-  http.ts        # Express app: /mcp (bearer-protected), OAuth metadata, /health
-  server.ts      # builds an McpServer with all tools registered
-  web-app-urls.ts # inoh.app links handed back to clients
-  auth/          # Supabase JWT verifier, protected-resource metadata, user helpers
-  supabase/      # per-request Supabase client acting as the signed-in user
-  custom-cards/  # monthly quota + request-status mapping shared by the card tools
-  tools/         # one file per tool, allowlisted in tools/index.ts;
-                 # tool-result.ts holds the shared isError result builder
-scripts/
-  mint-local-token.ts  # dev helper behind `pnpm token:local`
-```
-
-## Roadmap
-
-See the Linear issue for the full discussion. In order:
-
-1. Enable Supabase OAuth server + consent page in the Inoh web app; rate limiting
-2. CRUD tools: `add_card`, `search_cards`, `create_deck`, list decks/cards
-3. Contextual card construction, then voice review
-
-Done: `create_card` covers card generation (text, image, audio, distractors),
-metered by the per-plan monthly quota above rather than credits.
+Local setup, scripts, architecture and the release process live in
+[docs/development.md](docs/development.md).
