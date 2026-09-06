@@ -32,11 +32,11 @@ export interface SupabaseTokenVerifierOptions {
   supabaseJwtSecret: string | undefined;
 }
 
-const parseScopes = (scope: string | undefined): string[] => {
+const _parseScopes = (scope: string | undefined): string[] => {
   return scope === undefined ? [] : scope.split(' ').filter((entry) => entry.length > 0);
 };
 
-const describeVerificationFailure = (error: unknown): string => {
+const _describeVerificationFailure = (error: unknown): string => {
   return error instanceof joseErrors.JWTExpired ? 'Token has expired' : 'Invalid token';
 };
 
@@ -86,7 +86,7 @@ export const createSupabaseTokenVerifier = (
       });
       claims = verified.payload;
     } catch (error) {
-      throw new InvalidTokenError(describeVerificationFailure(error));
+      throw new InvalidTokenError(_describeVerificationFailure(error));
     }
 
     if (claims.sub === undefined) {
@@ -96,7 +96,7 @@ export const createSupabaseTokenVerifier = (
     return {
       token,
       clientId: claims.client_id ?? FIRST_PARTY_CLIENT_ID,
-      scopes: parseScopes(claims.scope),
+      scopes: _parseScopes(claims.scope),
       expiresAt: claims.exp,
       extra: { userId: claims.sub, email: claims.email },
     };

@@ -1,11 +1,9 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import * as z from 'zod/v4';
 import { getUserAccessToken } from '../auth/index.js';
+import { MAX_WORD_LENGTH } from '../constants.js';
 import { createUserSupabaseClient, type SupabaseConnection } from '../supabase/index.js';
 import { buildWordPageUrl } from '../web-app-urls.js';
-
-/** Matches the app's MAX_WORD_LENGTH and the RPC's own query bound. */
-const MAX_QUERY_LENGTH = 50;
 
 /**
  * Columns an AI client can use. Media paths and quiz distractors are left out
@@ -26,7 +24,7 @@ interface DictionarySearchResult extends DictionarySearchRow {
   url: string;
 }
 
-const toSearchResult = (row: DictionarySearchRow): DictionarySearchResult => ({
+const _toSearchResult = (row: DictionarySearchRow): DictionarySearchResult => ({
   ...row,
   url: buildWordPageUrl(row.id),
 });
@@ -56,7 +54,7 @@ export const registerSearchDictionaryTool = (
           .string()
           .trim()
           .min(1)
-          .max(MAX_QUERY_LENGTH)
+          .max(MAX_WORD_LENGTH)
           .describe('Word or phrase to look up, e.g. "banyan" or "get by"'),
       },
     },
@@ -70,7 +68,7 @@ export const registerSearchDictionaryTool = (
         throw new Error(`Dictionary search failed: ${error.message}`);
       }
 
-      const matches = ((data ?? []) as DictionarySearchRow[]).map(toSearchResult);
+      const matches = ((data ?? []) as DictionarySearchRow[]).map(_toSearchResult);
       const summary =
         matches.length === 0
           ? `No dictionary entry matches "${query}". The word may not be in the Inoh dictionary yet.`

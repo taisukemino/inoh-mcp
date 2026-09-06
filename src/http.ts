@@ -14,7 +14,7 @@ const LOOPBACK_HOSTS = ['127.0.0.1', 'localhost', '::1'];
 const JSON_RPC_INTERNAL_ERROR = -32603;
 const JSON_RPC_METHOD_NOT_ALLOWED = -32000;
 
-const sendJsonRpcError = (
+const _sendJsonRpcError = (
   response: Response,
   httpStatus: number,
   code: number,
@@ -23,7 +23,7 @@ const sendJsonRpcError = (
   response.status(httpStatus).json({ jsonrpc: '2.0', error: { code, message }, id: null });
 };
 
-const handleMcpPost = async (
+const _handleMcpPost = async (
   request: Request,
   response: Response,
   config: ServerConfig,
@@ -44,13 +44,13 @@ const handleMcpPost = async (
   } catch (error) {
     console.error('Error handling MCP request:', error);
     if (!response.headersSent) {
-      sendJsonRpcError(response, 500, JSON_RPC_INTERNAL_ERROR, 'Internal server error');
+      _sendJsonRpcError(response, 500, JSON_RPC_INTERNAL_ERROR, 'Internal server error');
     }
   }
 };
 
-const handleMcpMethodNotAllowed = (_request: Request, response: Response): void => {
-  sendJsonRpcError(response, 405, JSON_RPC_METHOD_NOT_ALLOWED, 'Method not allowed.');
+const _handleMcpMethodNotAllowed = (_request: Request, response: Response): void => {
+  _sendJsonRpcError(response, 405, JSON_RPC_METHOD_NOT_ALLOWED, 'Method not allowed.');
 };
 
 /**
@@ -94,10 +94,10 @@ export const registerHttpRoutes = (app: Express, config: ServerConfig): void => 
   const validateOrigin = createOriginValidation(config.allowedOrigins);
 
   app.post(MCP_PATH, validateOrigin, requireSignedInUser, (request, response) =>
-    handleMcpPost(request, response, config),
+    _handleMcpPost(request, response, config),
   );
   // Reason: GET (server-initiated SSE) and DELETE (session teardown) only make
   // sense in stateful mode, so they are rejected explicitly.
-  app.get(MCP_PATH, handleMcpMethodNotAllowed);
-  app.delete(MCP_PATH, handleMcpMethodNotAllowed);
+  app.get(MCP_PATH, _handleMcpMethodNotAllowed);
+  app.delete(MCP_PATH, _handleMcpMethodNotAllowed);
 };

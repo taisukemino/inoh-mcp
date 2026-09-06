@@ -210,14 +210,16 @@ claude mcp add --transport http inoh http://127.0.0.1:3333/mcp \
 src/
   index.ts       # entry point: load config, start HTTP server
   config.ts      # env parsing
-  constants.ts   # route paths
+  constants.ts   # route paths and shared input bounds
+  origin-validation.ts # Origin allowlist for /mcp
   http.ts        # Express app: /mcp (bearer-protected), OAuth metadata, /health
   server.ts      # builds an McpServer with all tools registered
   web-app-urls.ts # inoh.app links handed back to clients
   auth/          # Supabase JWT verifier, protected-resource metadata, user helpers
   supabase/      # per-request Supabase client acting as the signed-in user
   custom-cards/  # monthly quota + request-status mapping shared by the card tools
-  tools/         # one file per tool, allowlisted in tools/index.ts
+  tools/         # one file per tool, allowlisted in tools/index.ts;
+                 # tool-result.ts holds the shared isError result builder
 scripts/
   mint-local-token.ts  # dev helper behind `pnpm token:local`
 ```

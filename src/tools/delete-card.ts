@@ -3,6 +3,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import * as z from 'zod/v4';
 import { getUserAccessToken } from '../auth/index.js';
 import { createUserSupabaseClient, type SupabaseConnection } from '../supabase/index.js';
+import { buildToolError } from './tool-result.js';
 
 const DELETE_CUSTOM_CARD_FUNCTION = 'delete-custom-card';
 
@@ -12,11 +13,6 @@ interface OwnedCard {
   definition: string;
 }
 
-const asToolError = (message: string) => ({
-  isError: true,
-  content: [{ type: 'text' as const, text: message }],
-});
-
 /**
  * Find the caller's own custom cards for a word.
  *
@@ -24,7 +20,10 @@ const asToolError = (message: string) => ({
  * null` is what keeps this to cards they made. Under RLS those can only ever be
  * their own, so no user filter is needed.
  */
-const findOwnCardsByWord = async (supabase: SupabaseClient, word: string): Promise<OwnedCard[]> => {
+const _findOwnCardsByWord = async (
+  supabase: SupabaseClient,
+  word: string,
+): Promise<OwnedCard[]> => {
   const { data, error } = await supabase
     .from('dictionary')
     .select('id, word, definition')
@@ -54,7 +53,7 @@ interface FunctionErrorContext {
  * `lib: ES2022` and no DOM, so the global `Response` type comes from
  * @types/node and is not the same shape on every version.
  */
-const readFunctionErrorMessage = async (error: unknown): Promise<string | null> => {
+const _readFunctionErrorMessage = async (error: unknown): Promise<string | null> => {
   const context = (error as { context?: FunctionErrorContext }).context;
   if (typeof context?.json !== 'function') return null;
 
@@ -101,18 +100,22 @@ export const registerDeleteCardTool = (server: McpServer, connection: SupabaseCo
       },
     },
     async ({ word, cardId }, extra) => {
-      if ((word === undefined) === (cardId === undefined)) {
-        return asToolError('Pass exactly one of `word` or `cardId` to say which card to delete.');
+      const hasWord = word !== undefined;
+      const hasCardId = cardId !== undefined;
+      if (hasWord === hasCardId) {
+        return buildToolError(
+          'Pass exactly one of `word` or `cardId` to say which card to delete.',
+        );
       }
 
       const supabase = createUserSupabaseClient(connection, getUserAccessToken(extra.authInfo));
 
       let targetCardId = cardId;
       if (word !== undefined) {
-        const matches = await findOwnCardsByWord(supabase, word);
+        const matches = await _findOwnCardsByWord(supabase, word);
 
         if (matches.length === 0) {
-          return asToolError(
+          return buildToolError(
             `The user has no custom card for "${word}". Only cards they created with ` +
               'create_card can be deleted; cards from the Inoh dictionary cannot.',
           );
@@ -122,7 +125,7 @@ export const registerDeleteCardTool = (server: McpServer, connection: SupabaseCo
           const options = matches
             .map((card) => `- cardId ${card.id}: ${card.definition}`)
             .join('\n');
-          return asToolError(
+          return buildToolError(
             `The user has ${matches.length} custom cards for "${word}". Ask which one, then ` +
               `call delete_card again with its cardId:\n${options}`,
           );
@@ -136,9 +139,9 @@ export const registerDeleteCardTool = (server: McpServer, connection: SupabaseCo
       });
 
       if (error) {
-        const functionMessage = await readFunctionErrorMessage(error);
+        const functionMessage = await _readFunctionErrorMessage(error);
         if (functionMessage !== null) {
-          return asToolError(functionMessage);
+          return buildToolError(functionMessage);
         }
         throw new Error(`Could not delete the card: ${error.message}`);
       }

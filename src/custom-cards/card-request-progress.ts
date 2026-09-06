@@ -46,7 +46,7 @@ export interface CustomCardStatus {
  * because it is what the monthly quota counts. Reporting that as `ready` would
  * have a caller hand out a link to a card that no longer exists.
  */
-const readProgress = (row: CardRequestRow): CustomCardProgress => {
+const _readProgress = (row: CardRequestRow): CustomCardProgress => {
   if (row.status === 'approved') return row.dictionary_id === null ? 'deleted' : 'ready';
   if (row.status === 'rejected') return 'failed';
   if (row.status === 'failed' && row.error_reason !== null) return 'failed';
@@ -60,7 +60,7 @@ const readProgress = (row: CardRequestRow): CustomCardProgress => {
  * @returns Progress plus the card link or failure reason, when there is one
  */
 export const toCustomCardStatus = (row: CardRequestRow): CustomCardStatus => {
-  const progress = readProgress(row);
+  const progress = _readProgress(row);
 
   return {
     requestId: row.id,

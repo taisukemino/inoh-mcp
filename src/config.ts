@@ -33,7 +33,7 @@ export interface ServerConfig {
 const DEFAULT_PORT = 3333;
 const DEFAULT_HOST = '127.0.0.1';
 
-const readRequiredEnv = (name: string): string => {
+const _readRequiredEnv = (name: string): string => {
   const value = process.env[name];
   if (value === undefined || value === '') {
     throw new Error(`Missing required environment variable ${name}. See .env.example.`);
@@ -41,7 +41,7 @@ const readRequiredEnv = (name: string): string => {
   return value;
 };
 
-const readOptionalEnv = (name: string): string | undefined => {
+const _readOptionalEnv = (name: string): string | undefined => {
   const value = process.env[name];
   return value === undefined || value === '' ? undefined : value;
 };
@@ -52,7 +52,7 @@ const readOptionalEnv = (name: string): string | undefined => {
  * Defaults to the Inoh web app alone, so an unrecognised browser client is
  * refused until it is added deliberately rather than allowed by omission.
  */
-const parseAllowedOrigins = (rawValue: string | undefined): string[] => {
+const _parseAllowedOrigins = (rawValue: string | undefined): string[] => {
   if (rawValue === undefined) return [INOH_WEB_APP_URL];
 
   return rawValue
@@ -61,7 +61,7 @@ const parseAllowedOrigins = (rawValue: string | undefined): string[] => {
     .filter((origin) => origin !== '');
 };
 
-const parseUrl = (name: string, rawValue: string): URL => {
+const _parseUrl = (name: string, rawValue: string): URL => {
   try {
     return new URL(rawValue);
   } catch {
@@ -69,7 +69,7 @@ const parseUrl = (name: string, rawValue: string): URL => {
   }
 };
 
-const parsePort = (rawPort: string | undefined): number => {
+const _parsePort = (rawPort: string | undefined): number => {
   const port = rawPort === undefined ? DEFAULT_PORT : Number.parseInt(rawPort, 10);
   if (!Number.isInteger(port) || port <= 0) {
     throw new Error(`Invalid PORT value: "${rawPort}". Expected a positive integer.`);
@@ -84,17 +84,17 @@ const parsePort = (rawPort: string | undefined): number => {
  * @throws {Error} When a required variable is missing or a value is malformed
  */
 export const loadServerConfig = (): ServerConfig => {
-  const port = parsePort(process.env.PORT);
+  const port = _parsePort(process.env.PORT);
   const host = process.env.HOST ?? DEFAULT_HOST;
   const rawPublicUrl = process.env.PUBLIC_URL ?? `http://${host}:${port}`;
 
   return {
     port,
     host,
-    publicUrl: parseUrl('PUBLIC_URL', rawPublicUrl),
-    supabaseUrl: parseUrl('SUPABASE_URL', readRequiredEnv('SUPABASE_URL')),
-    supabasePublishableKey: readRequiredEnv('SUPABASE_PUBLISHABLE_KEY'),
-    supabaseJwtSecret: readOptionalEnv('SUPABASE_JWT_SECRET'),
-    allowedOrigins: parseAllowedOrigins(readOptionalEnv('ALLOWED_ORIGINS')),
+    publicUrl: _parseUrl('PUBLIC_URL', rawPublicUrl),
+    supabaseUrl: _parseUrl('SUPABASE_URL', _readRequiredEnv('SUPABASE_URL')),
+    supabasePublishableKey: _readRequiredEnv('SUPABASE_PUBLISHABLE_KEY'),
+    supabaseJwtSecret: _readOptionalEnv('SUPABASE_JWT_SECRET'),
+    allowedOrigins: _parseAllowedOrigins(_readOptionalEnv('ALLOWED_ORIGINS')),
   };
 };

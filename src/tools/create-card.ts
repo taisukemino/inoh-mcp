@@ -3,11 +3,11 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import * as z from 'zod/v4';
 import { getAuthenticatedUser, getUserAccessToken } from '../auth/index.js';
 import { fetchCustomCardQuota } from '../custom-cards/index.js';
+import { MAX_WORD_LENGTH } from '../constants.js';
 import { createUserSupabaseClient, type SupabaseConnection } from '../supabase/index.js';
 import { MY_REQUESTS_URL } from '../web-app-urls.js';
+import { buildToolError } from './tool-result.js';
 
-/** Matches the app's MAX_WORD_LENGTH. */
-const MAX_WORD_LENGTH = 50;
 const MAX_CONTEXT_LENGTH = 300;
 
 const POSTGRES_UNIQUE_VIOLATION = '23505';
@@ -23,14 +23,14 @@ const DAILY_CEILING_ERROR_PREFIX = 'DAILY_CARD_REQUEST_LIMIT:';
  * sense to teach, so it cannot simply be blank. Naming the common meaning is
  * both true to what the user asked for and a usable hint.
  */
-const defaultContextFor = (word: string): string => `the most common meaning of "${word}"`;
+const _buildDefaultContext = (word: string): string => `the most common meaning of "${word}"`;
 
 /**
  * Resolve a deck by name for the signed-in user.
  *
  * @returns The deck id, or the names of their decks when nothing matched
  */
-const resolveDeckByName = async (
+const _resolveDeckByName = async (
   supabase: SupabaseClient,
   deckName: string,
 ): Promise<{ deckId: string } | { availableDeckNames: string[] }> => {
@@ -46,11 +46,6 @@ const resolveDeckByName = async (
 
   return match ? { deckId: match.id } : { availableDeckNames: decks.map((deck) => deck.name) };
 };
-
-const asToolError = (message: string) => ({
-  isError: true,
-  content: [{ type: 'text' as const, text: message }],
-});
 
 /**
  * Registers a `create_card` tool that generates a full Inoh card for the
@@ -107,10 +102,10 @@ export const registerCreateCardTool = (server: McpServer, connection: SupabaseCo
 
       let deckId: string | null = null;
       if (deckName !== undefined) {
-        const resolved = await resolveDeckByName(supabase, deckName);
+        const resolved = await _resolveDeckByName(supabase, deckName);
         if ('availableDeckNames' in resolved) {
           const deckList = resolved.availableDeckNames.map((name) => `"${name}"`).join(', ');
-          return asToolError(
+          return buildToolError(
             `No deck named "${deckName}". Your decks: ${deckList || 'none yet'}. ` +
               'Omit deckName to use the default deck.',
           );
@@ -123,7 +118,7 @@ export const registerCreateCardTool = (server: McpServer, connection: SupabaseCo
         .insert({
           user_id: user.id,
           word,
-          context: context ?? defaultContextFor(word),
+          context: context ?? _buildDefaultContext(word),
           destination: 'custom',
           source: 'mcp',
           deck_id: deckId,
@@ -133,7 +128,7 @@ export const registerCreateCardTool = (server: McpServer, connection: SupabaseCo
 
       if (error) {
         if (error.code === POSTGRES_UNIQUE_VIOLATION) {
-          return asToolError(
+          return buildToolError(
             `A card for "${word}" with that same context is already being made. ` +
               'Call get_card_status to see how it is going.',
           );
@@ -142,10 +137,10 @@ export const registerCreateCardTool = (server: McpServer, connection: SupabaseCo
         // pass them through rather than restating them worse.
         if (error.message.includes(QUOTA_ERROR_PREFIX)) {
           const [, quotaExplanation] = error.message.split(QUOTA_ERROR_PREFIX);
-          return asToolError(quotaExplanation?.trim() ?? error.message);
+          return buildToolError(quotaExplanation?.trim() ?? error.message);
         }
         if (error.message.includes(DAILY_CEILING_ERROR_PREFIX)) {
-          return asToolError(
+          return buildToolError(
             'That is a lot of cards in one day. Inoh has stopped accepting new ones until ' +
               'tomorrow as a safety measure.',
           );

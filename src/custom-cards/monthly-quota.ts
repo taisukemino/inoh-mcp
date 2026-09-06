@@ -28,7 +28,7 @@ const ENTITLED_STATUSES = ['active', 'trialing'];
  * Start of the current UTC calendar month, matching the window the database
  * trigger counts over.
  */
-const startOfCurrentMonth = (): string => {
+const _startOfCurrentMonth = (): string => {
   const now = new Date();
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
 };
@@ -37,7 +37,7 @@ const startOfCurrentMonth = (): string => {
  * Mirror of get_entitled_plan: a paid plan counts only while the subscription
  * is active or trialing, and anything else falls closed to free.
  */
-const readEntitledPlan = async (supabase: SupabaseClient): Promise<SubscriptionPlan> => {
+const _readEntitledPlan = async (supabase: SupabaseClient): Promise<SubscriptionPlan> => {
   const { data, error } = await supabase.from('subscriptions').select('plan, status').maybeSingle();
 
   if (error || data === null) {
@@ -61,7 +61,7 @@ const readEntitledPlan = async (supabase: SupabaseClient): Promise<SubscriptionP
  * @returns Their plan, what they have used, and what is left
  */
 export const fetchCustomCardQuota = async (supabase: SupabaseClient): Promise<CustomCardQuota> => {
-  const plan = await readEntitledPlan(supabase);
+  const plan = await _readEntitledPlan(supabase);
 
   // Reason: counts the same rows the trigger counts — custom requests made this
   // month that did not end up failed or rejected, since those free their slot.
@@ -70,7 +70,7 @@ export const fetchCustomCardQuota = async (supabase: SupabaseClient): Promise<Cu
     .select('id', { count: 'exact', head: true })
     .eq('destination', 'custom')
     .not('status', 'in', '("failed","rejected")')
-    .gte('created_at', startOfCurrentMonth());
+    .gte('created_at', _startOfCurrentMonth());
 
   const used = count ?? 0;
   const limit = CUSTOM_CARD_MONTHLY_LIMITS[plan];
