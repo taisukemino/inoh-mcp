@@ -21,13 +21,13 @@ sign-in flow itself is handled by Supabase and still needs to be switched on (se
 ## Custom cards
 
 `create_card` gives a user their own card for a word the dictionary does not
-cover — or covers in the wrong sense. The card belongs to them alone: it never
+cover, or covers in the wrong sense. The card belongs to them alone: it never
 enters the shared dictionary, the Discover feed, or `search_dictionary`, and two
 users asking for the same word each get their own.
 
-It is a complete card, not a stub — definition, example sentence, three audio
-clips, image, phonetic and both sets of quiz distractors — so it is quizzable in
-the Inoh app the moment it appears, alongside curated cards.
+It is a complete card, not a stub: definition, example sentence, three audio
+clips, image, phonetic and both sets of quiz distractors. That makes it
+quizzable in the Inoh app the moment it appears, alongside curated cards.
 
 ```
 create_card({ word, context?, deckName? })
@@ -53,7 +53,7 @@ delete_card({ word })  or  delete_card({ cardId })
 ```
 
 A user can delete a card **they** created and nothing else. Ask `delete_card` to
-remove a curated dictionary entry — by id or by word — and it refuses: those are
+remove a curated dictionary entry, by id or by word, and it refuses: those are
 shared with everyone, and dropping one from a deck is done in the Inoh app.
 
 Deletion is permanent and the tool says so, so confirm with the user first.
@@ -61,7 +61,7 @@ Identify the card by `word` (the tool resolves it, and lists the options if the
 user has several custom cards for that word) or by the `cardId` from
 `get_card_status`.
 
-It does **not** refund the monthly allowance the card used — otherwise a
+It does **not** refund the monthly allowance the card used. Otherwise a
 create/delete loop would mint unlimited cards. A card that was made and later
 deleted reports `progress: 'deleted'` from `get_card_status`, since its request
 row lives on as the quota ledger.
@@ -78,8 +78,8 @@ minutes and cancels it if the user undoes. Either way the card and its media end
 up gone.
 
 This server never holds a service-role key. It inserts the request as the
-signed-in user and RLS decides the rest, so the generation pipeline — and the
-quota below — cannot be bypassed from here.
+signed-in user and RLS decides the rest, so neither the generation pipeline nor
+the quota below can be bypassed from here.
 
 **Monthly quota** (enforced by the `enforce_monthly_custom_card_limit` trigger
 in inoh-backend; `CUSTOM_CARD_MONTHLY_LIMITS` here only reports it):
@@ -149,9 +149,9 @@ document, which lists Supabase as the authorization server. MCP clients discover
 ### Origin validation
 
 The Streamable HTTP spec requires servers to validate `Origin` so a hostile page cannot drive the
-server from a victim's browser. `/mcp` therefore accepts a request only when it carries no `Origin`
-header at all — every native client (Claude Desktop, the CLI, Codex, Cursor) sends none — or when
-the origin is on the `ALLOWED_ORIGINS` list, which defaults to `https://inoh.app`. Anything else
+server from a victim's browser. `/mcp` therefore accepts a request in two cases: it carries no `Origin`
+header at all, which is what every native client does (Claude Desktop, the CLI, Codex, Cursor), or
+its origin is on the `ALLOWED_ORIGINS` list, which defaults to `https://inoh.app`. Anything else
 gets a `403`. `/health` and the OAuth metadata documents stay open to any origin.
 
 Bearer auth already makes this defence-in-depth rather than the main protection: credentials live in
@@ -195,13 +195,13 @@ claude mcp add --transport http inoh http://127.0.0.1:3333/mcp \
 | `ping`                                                                                              | Connectivity check                                                                                                                                                      |
 | `whoami`                                                                                            | Returns the signed-in user's id and email                                                                                                                               |
 | `search_dictionary`                                                                                 | Searches the curated Inoh dictionary by word: contains match, exact first, typo-tolerant fallback. Returns up to 20 entries, each with a link to its inoh.app word page |
-| `create_card`                                                                                       | Generates a full card for the signed-in user and files it in their deck. Returns as soon as the work is queued — see [Custom cards](#custom-cards)                      |
+| `create_card`                                                                                       | Generates a full card for the signed-in user and files it in their deck. Returns as soon as the work is queued; see [Custom cards](#custom-cards)                       |
 | `get_card_status`                                                                                   | Whether the user's cards are still generating, ready (with a link), failed (with the reason), or deleted                                                                |
 | `delete_card`                                                                                       | Permanently deletes one of the user's own custom cards, including its media. Refuses anything they did not create                                                       |
 | Data tools call Supabase with the user's own bearer token, so Row Level Security applies as it does |
 | in the app. `search_dictionary` calls the `search_dictionary_words` Postgres function from          |
 | `inoh-backend`, the same one the app's Discover search bar uses, so both stay in sync. It returns   |
-| curated entries only — a user's own custom cards are deliberately not searchable, since they are    |
+| curated entries only: a user's own custom cards are deliberately not searchable, since they are     |
 | already in their deck.                                                                              |
 
 ## Project layout
