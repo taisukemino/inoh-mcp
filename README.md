@@ -97,5 +97,11 @@ Found something wrong? Open an issue on this repository.
 
 ## Development
 
-Local setup, scripts, architecture and the release process live in
+Local setup, architecture and the release process live in
 [docs/development.md](docs/development.md).
+
+## Licence
+
+All rights reserved. The source is published so you can audit what the server does with your
+account, not as an open source release. See [LICENSE](LICENSE). Connecting to the hosted server
+needs no licence.

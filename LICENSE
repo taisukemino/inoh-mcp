@@ -1,0 +1,14 @@
+Copyright (c) 2026 Inoh. All rights reserved.
+
+This source code is published for transparency: so that anyone connecting an AI
+client to the Inoh MCP server can see exactly what it does with their account
+and their data.
+
+Publication is not a grant of rights. No permission is given to use, copy,
+modify, merge, publish, distribute, sublicense or sell this software or any
+derivative of it, in whole or in part.
+
+Using the hosted service at https://mcp.inoh.app needs no licence and is
+governed by Inoh's terms of service.
+
+For any other use, ask: https://github.com/taisukemino/inoh-mcp/issues
