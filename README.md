@@ -11,8 +11,6 @@ AI client → inoh-mcp → Inoh backend (Supabase) → DB + AI services
 The AI never gets arbitrary backend access. It can only call the tools explicitly registered in
 `src/tools/index.ts`.
 
-Tracking issue: [PRI-20600](https://linear.app/tai-lab/issue/PRI-20600/mcp-server-implementation)
-
 ## Status
 
 Stateless Streamable HTTP server with bearer-token auth. Tools: `ping`, `whoami`,
