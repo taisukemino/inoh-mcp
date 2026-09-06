@@ -3,7 +3,9 @@ import type { SupabaseConnection } from './supabase/index.js';
 import { registerAllTools } from './tools/index.js';
 
 const SERVER_NAME = 'inoh-mcp';
-const SERVER_VERSION = '0.1.0';
+// Keep in sync with the version in package.json and with what is published to
+// the MCP Registry: clients display this from the initialize handshake.
+const SERVER_VERSION = '0.0.1';
 
 /**
  * Builds a fresh `McpServer` with all Inoh tools registered.

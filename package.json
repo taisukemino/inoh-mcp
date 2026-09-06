@@ -1,6 +1,6 @@
 {
   "name": "inoh-mcp",
-  "version": "0.1.0",
+  "version": "0.0.1",
   "private": true,
   "description": "Inoh MCP server: a controlled, AI-facing interface to Inoh vocabulary decks",
   "type": "module",
