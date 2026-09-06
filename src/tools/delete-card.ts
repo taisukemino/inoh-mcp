@@ -134,11 +134,11 @@ export const registerDeleteCardTool = (server: McpServer, connection: SupabaseCo
         throw new Error(`Could not delete the card: ${error.message}`);
       }
 
-      const result = data as { word?: string; media_deleted?: boolean; media_note?: string };
+      const result = data as { word?: string; media_deleted?: boolean };
       const deletedWord = result.word ?? word ?? 'the card';
       const mediaCaveat =
         result.media_deleted === false
-          ? ` ${result.media_note ?? 'Its media files will be cleaned up separately.'}`
+          ? ' Its image and audio could not be removed just now and will be cleaned up separately.'
           : '';
 
       return {
