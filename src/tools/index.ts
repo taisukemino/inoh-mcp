@@ -3,7 +3,7 @@ import type { SupabaseConnection } from '../supabase/index.js';
 import { registerAddCardToDeckTool } from './add-card-to-deck.js';
 import { registerCheckAccountTool } from './check-account.js';
 import { registerCheckCardCreationStatusTool } from './check-card-creation-status.js';
-import { registerCreateCardTool } from './create-card.js';
+import { registerCreateCustomCardTool } from './create-custom-card.js';
 import { registerDeleteCustomCardTool } from './delete-custom-card.js';
 import { registerRemoveCardFromDeckTool } from './remove-card-from-deck.js';
 import { registerSearchDictionaryTool } from './search-dictionary.js';
@@ -22,7 +22,7 @@ export const registerAllTools = (server: McpServer, connection: SupabaseConnecti
   registerSearchDictionaryTool(server, connection);
   registerAddCardToDeckTool(server, connection);
   registerRemoveCardFromDeckTool(server, connection);
-  registerCreateCardTool(server, connection);
+  registerCreateCustomCardTool(server, connection);
   registerCheckCardCreationStatusTool(server, connection);
   registerDeleteCustomCardTool(server, connection);
 };
