@@ -1,9 +1,9 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import type { SupabaseClient } from '@supabase/supabase-js';
 import * as z from 'zod/v4';
 import { getAuthenticatedUser, getUserAccessToken } from '../auth/index.js';
 import { fetchCustomCardQuota } from '../custom-cards/index.js';
 import { MAX_WORD_LENGTH } from '../constants.js';
+import { describeMissingDeck, fetchDecks, findDeckByName } from '../decks/index.js';
 import { createUserSupabaseClient, type SupabaseConnection } from '../supabase/index.js';
 import { MY_REQUESTS_URL } from '../web-app-urls.js';
 import { buildToolError } from './tool-result.js';
@@ -24,28 +24,6 @@ const DAILY_CEILING_ERROR_PREFIX = 'DAILY_CARD_REQUEST_LIMIT:';
  * both true to what the user asked for and a usable hint.
  */
 const _buildDefaultContext = (word: string): string => `the most common meaning of "${word}"`;
-
-/**
- * Resolve a deck by name for the signed-in user.
- *
- * @returns The deck id, or the names of their decks when nothing matched
- */
-const _resolveDeckByName = async (
-  supabase: SupabaseClient,
-  deckName: string,
-): Promise<{ deckId: string } | { availableDeckNames: string[] }> => {
-  // RLS scopes decks to the caller, so this can only ever match their own.
-  const { data, error } = await supabase.from('decks').select('id, name');
-
-  if (error) {
-    throw new Error(`Could not look up your decks: ${error.message}`);
-  }
-
-  const decks = (data ?? []) as { id: string; name: string }[];
-  const match = decks.find((deck) => deck.name.toLowerCase() === deckName.toLowerCase());
-
-  return match ? { deckId: match.id } : { availableDeckNames: decks.map((deck) => deck.name) };
-};
 
 /**
  * Registers a `create_card` tool that generates a full Inoh card for the
@@ -100,17 +78,16 @@ export const registerCreateCardTool = (server: McpServer, connection: SupabaseCo
       const user = getAuthenticatedUser(extra.authInfo);
       const supabase = createUserSupabaseClient(connection, getUserAccessToken(extra.authInfo));
 
+      // Left null when no deck is named: publish_custom_card resolves the
+      // default server-side, which is one fewer round trip than doing it here.
       let deckId: string | null = null;
       if (deckName !== undefined) {
-        const resolved = await _resolveDeckByName(supabase, deckName);
-        if ('availableDeckNames' in resolved) {
-          const deckList = resolved.availableDeckNames.map((name) => `"${name}"`).join(', ');
-          return buildToolError(
-            `No deck named "${deckName}". Your decks: ${deckList || 'none yet'}. ` +
-              'Omit deckName to use the default deck.',
-          );
+        const decks = await fetchDecks(supabase);
+        const deck = findDeckByName(decks, deckName);
+        if (deck === undefined) {
+          return buildToolError(describeMissingDeck(deckName, decks));
         }
-        deckId = resolved.deckId;
+        deckId = deck.id;
       }
 
       const { data, error } = await supabase
