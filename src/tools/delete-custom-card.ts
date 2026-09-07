@@ -66,25 +66,28 @@ const _readFunctionErrorMessage = async (error: unknown): Promise<string | null>
 };
 
 /**
- * Registers a `delete_card` tool that deletes one of the signed-in user's own
- * custom cards, along with its media.
+ * Registers a `delete_custom_card` tool that deletes one of the signed-in
+ * user's own custom cards, along with its media.
  *
  * @param server - The MCP server to register the tool on
  * @param connection - Supabase project URL and publishable key
  */
-export const registerDeleteCardTool = (server: McpServer, connection: SupabaseConnection): void => {
+export const registerDeleteCustomCardTool = (
+  server: McpServer,
+  connection: SupabaseConnection,
+): void => {
   server.registerTool(
-    'delete_card',
+    'delete_custom_card',
     {
-      title: 'Delete a card',
+      title: 'Delete a card you created',
       description:
         'Permanently deletes a card the signed-in user created with create_card: the card ' +
         'itself, its place in their deck, and its image and audio files. This cannot be ' +
         'undone, so confirm with the user first. Identify the card by `word`, or by `cardId` ' +
-        'from get_card_status. Only cards the user made can be deleted — a card from the ' +
-        'shared Inoh dictionary belongs to everyone, and removing one of those from a deck is ' +
-        'done in the Inoh app. Deleting a card does not give back the monthly custom card ' +
-        'allowance it used.',
+        'from check_card_creation_status. Only cards the user made can be deleted — a card ' +
+        'from the shared Inoh dictionary belongs to everyone, and removing one of those from ' +
+        'a deck is done in the Inoh app. Deleting a card does not give back the monthly ' +
+        'custom card allowance it used.',
       inputSchema: {
         word: z
           .string()
@@ -96,7 +99,7 @@ export const registerDeleteCardTool = (server: McpServer, connection: SupabaseCo
           .string()
           .uuid()
           .optional()
-          .describe('The cardId from get_card_status. Use this or word.'),
+          .describe('The cardId from check_card_creation_status. Use this or word.'),
       },
     },
     async ({ word, cardId }, extra) => {
@@ -127,7 +130,7 @@ export const registerDeleteCardTool = (server: McpServer, connection: SupabaseCo
             .join('\n');
           return buildToolError(
             `The user has ${matches.length} custom cards for "${word}". Ask which one, then ` +
-              `call delete_card again with its cardId:\n${options}`,
+              `call delete_custom_card again with its cardId:\n${options}`,
           );
         }
 
