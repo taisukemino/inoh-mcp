@@ -48,7 +48,8 @@ export const registerSearchDictionaryTool = (
         'Searches the Inoh dictionary for a word or phrase. Matches words containing the query ' +
         '(exact matches first) and falls back to typo-tolerant matching when nothing contains it. ' +
         'Returns up to 20 entries with id, word, phonetic, definition, example sentence and a ' +
-        'link to the word page on inoh.app. Use the id when adding a card to a deck.',
+        'link to the word page on inoh.app. Pass an id to add_card_to_deck to put that card in ' +
+        "the user's deck. Only curated entries are searched, never cards a user made themselves.",
       inputSchema: {
         query: z
           .string()
