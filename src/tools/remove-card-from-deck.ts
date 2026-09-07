@@ -4,60 +4,16 @@ import * as z from 'zod/v4';
 import { getUserAccessToken } from '../auth/index.js';
 import { MAX_WORD_LENGTH } from '../constants.js';
 import { fetchDecks } from '../decks/index.js';
+import { findCardById, findCardsByWord, type DictionaryCard } from '../dictionary/index.js';
 import { createUserSupabaseClient, type SupabaseConnection } from '../supabase/index.js';
 import { formatCardChoices, requireOneCardSelector } from './card-selection.js';
 import { buildToolError } from './tool-result.js';
-
-interface DictionaryCard {
-  id: string;
-  word: string;
-  definition: string;
-  owner_user_id: string | null;
-}
 
 /** A card that is both in the dictionary and in one of the user's decks. */
 interface CardInDeck extends DictionaryCard {
   userCardId: string;
   deckId: string;
 }
-
-const DICTIONARY_CARD_COLUMNS = 'id, word, definition, owner_user_id';
-
-/**
- * Every card for a word the caller can see, curated or their own.
- */
-const _findCardsByWord = async (
-  supabase: SupabaseClient,
-  word: string,
-): Promise<DictionaryCard[]> => {
-  const { data, error } = await supabase
-    .from('dictionary')
-    .select(DICTIONARY_CARD_COLUMNS)
-    .ilike('word', word);
-
-  if (error) {
-    throw new Error(`Could not look "${word}" up: ${error.message}`);
-  }
-
-  return (data ?? []) as DictionaryCard[];
-};
-
-const _findCardById = async (
-  supabase: SupabaseClient,
-  cardId: string,
-): Promise<DictionaryCard | null> => {
-  const { data, error } = await supabase
-    .from('dictionary')
-    .select(DICTIONARY_CARD_COLUMNS)
-    .eq('id', cardId)
-    .maybeSingle();
-
-  if (error) {
-    throw new Error(`Could not look that card up: ${error.message}`);
-  }
-
-  return data as DictionaryCard | null;
-};
 
 /**
  * Narrow a set of dictionary cards to the ones actually in the user's decks.
@@ -138,8 +94,8 @@ export const registerRemoveCardFromDeckTool = (
 
       const candidates =
         cardId === undefined
-          ? await _findCardsByWord(supabase, word ?? '')
-          : [await _findCardById(supabase, cardId)].filter(
+          ? await findCardsByWord(supabase, word ?? '')
+          : [await findCardById(supabase, cardId)].filter(
               (card): card is DictionaryCard => card !== null,
             );
 

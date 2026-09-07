@@ -4,8 +4,10 @@ import { getAuthenticatedUser, getUserAccessToken } from '../auth/index.js';
 import { fetchCustomCardQuota } from '../custom-cards/index.js';
 import { MAX_WORD_LENGTH } from '../constants.js';
 import { describeMissingDeck, fetchDecks, findDeckByName } from '../decks/index.js';
+import { findCardsByWord, type DictionaryCard } from '../dictionary/index.js';
 import { createUserSupabaseClient, type SupabaseConnection } from '../supabase/index.js';
 import { MY_REQUESTS_URL } from '../web-app-urls.js';
+import { formatCardChoices } from './card-selection.js';
 import { buildToolError } from './tool-result.js';
 
 const MAX_CONTEXT_LENGTH = 300;
@@ -24,6 +26,48 @@ const DAILY_CEILING_ERROR_PREFIX = 'DAILY_CARD_REQUEST_LIMIT:';
  * both true to what the user asked for and a usable hint.
  */
 const _buildDefaultContext = (word: string): string => `the most common meaning of "${word}"`;
+
+/**
+ * Explain that the word is already covered, and what to do instead.
+ *
+ * Reason: generating a duplicate spends a slot of the monthly allowance on a
+ * worse copy of a card that already exists, and nothing reviews the result. The
+ * tool description has always asked callers to search first, but an instruction
+ * a model can skip is not a safeguard, so the check belongs here.
+ *
+ * @param word - The word that was requested
+ * @param existingCards - What the dictionary already holds for it
+ * @returns A message telling the caller how to proceed
+ */
+const _describeExistingCards = (word: string, existingCards: DictionaryCard[]): string => {
+  const curated = existingCards.filter((card) => card.owner_user_id === null);
+  const ownCards = existingCards.filter((card) => card.owner_user_id !== null);
+
+  const paragraphs: string[] = [];
+
+  if (curated.length > 0) {
+    paragraphs.push(
+      `The Inoh dictionary already has ${curated.length === 1 ? 'a card' : `${curated.length} cards`} ` +
+        `for "${word}". A curated card is written and checked by Inoh, and adding one costs ` +
+        `nothing against the monthly allowance:\n${formatCardChoices(curated)}`,
+    );
+  }
+
+  if (ownCards.length > 0) {
+    paragraphs.push(
+      `The user has already made ${ownCards.length === 1 ? 'a card' : `${ownCards.length} cards`} ` +
+        `for "${word}":\n${formatCardChoices(ownCards)}`,
+    );
+  }
+
+  paragraphs.push(
+    'Add one of those with add_card_to_deck instead. If the user genuinely wants a separate ' +
+      'card because they mean a different sense of the word, call create_custom_card again with ' +
+      'createAnyway set to true and a `context` saying which sense.',
+  );
+
+  return paragraphs.join('\n\n');
+};
 
 /**
  * Registers a `create_custom_card` tool that generates a full Inoh card for the
@@ -46,9 +90,10 @@ export const registerCreateCustomCardTool = (
         'or the Discover feed. Inoh generates everything needed to quiz on it — definition, ' +
         'example sentence, pronunciation audio, image, phonetic and quiz distractors — so ' +
         'this takes about a minute and finishes in the background. Call ' +
-        'custom_card_creation_status to check on it. Search the dictionary first: if a good ' +
-        'curated card already exists, adding that one is better than making a duplicate. ' +
-        'Each plan allows a set number of custom cards per month.',
+        'custom_card_creation_status to check on it. If the Inoh dictionary already has the ' +
+        'word, this stops and points at the existing card rather than making a duplicate, ' +
+        'since a curated card is better and costs no allowance. Each plan allows a set ' +
+        'number of custom cards per month.',
       inputSchema: {
         word: z
           .string()
@@ -75,11 +120,26 @@ export const registerCreateCustomCardTool = (
           .describe(
             "Name of an existing deck to file the card in. Defaults to the user's first deck.",
           ),
+        createAnyway: z
+          .boolean()
+          .optional()
+          .describe(
+            'Set true to generate a card even though Inoh already has one for this word. Only ' +
+              'do this when the user wants a sense the existing cards do not cover, and say ' +
+              'which sense in `context`.',
+          ),
       },
     },
-    async ({ word, context, deckName }, extra) => {
+    async ({ word, context, deckName, createAnyway }, extra) => {
       const user = getAuthenticatedUser(extra.authInfo);
       const supabase = createUserSupabaseClient(connection, getUserAccessToken(extra.authInfo));
+
+      if (createAnyway !== true) {
+        const existingCards = await findCardsByWord(supabase, word);
+        if (existingCards.length > 0) {
+          return buildToolError(_describeExistingCards(word, existingCards));
+        }
+      }
 
       // Left null when no deck is named: publish_custom_card resolves the
       // default server-side, which is one fewer round trip than doing it here.
