@@ -30,7 +30,7 @@ export const registerCheckCardCreationStatusTool = (
       description:
         'Reports how the custom cards the signed-in user asked for are coming along: still ' +
         'generating, ready (with a link to the card), or failed (with the reason). Pass the ' +
-        'requestId from create_card to check one card, or omit it for their most recent ' +
+        'requestId from create_custom_card to check one card, or omit it for their most recent ' +
         'cards. Generation normally takes under a minute, so if a card is still generating it ' +
         'is worth waiting a moment before checking again.',
       inputSchema: {
@@ -38,7 +38,7 @@ export const registerCheckCardCreationStatusTool = (
           .string()
           .uuid()
           .optional()
-          .describe('The requestId returned by create_card. Omit to list recent cards.'),
+          .describe('The requestId returned by create_custom_card. Omit to list recent cards.'),
       },
     },
     async ({ requestId }, extra) => {
@@ -72,7 +72,7 @@ export const registerCheckCardCreationStatusTool = (
               type: 'text',
               text:
                 requestId === undefined
-                  ? 'This user has not created any custom cards yet. Use create_card to make one.'
+                  ? 'This user has not created any custom cards yet. Use create_custom_card to make one.'
                   : `No custom card request found with id ${requestId}. It may belong to another account.`,
             },
           ],
