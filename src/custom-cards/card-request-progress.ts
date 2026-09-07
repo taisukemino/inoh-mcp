@@ -24,7 +24,7 @@ export interface CustomCardStatus {
   context: string;
   progress: CustomCardProgress;
   requestedAt: string;
-  /** Set once the card exists. This is what delete_card takes. */
+  /** Set once the card exists. This is what delete_custom_card takes. */
   cardId?: string;
   /** Set once the card exists, so the client can link straight to it. */
   cardUrl?: string;
