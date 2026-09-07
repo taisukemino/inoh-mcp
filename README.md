@@ -32,6 +32,8 @@ The first tool call opens a browser tab asking you to sign in and approve access
 | Tool                         | What it does                                                   |
 | ---------------------------- | -------------------------------------------------------------- |
 | `search_dictionary`          | Look a word or phrase up in the Inoh dictionary                |
+| `add_card_to_deck`           | Put a card that already exists into one of your decks          |
+| `remove_card_from_deck`      | Take a dictionary card back out of your deck                   |
 | `create_card`                | Build a complete flashcard for a word and file it in your deck |
 | `check_card_creation_status` | Check whether a card you asked for is ready                    |
 | `delete_custom_card`         | Permanently delete a card you created, including its media     |
@@ -43,7 +45,22 @@ Things people actually say:
 - "I keep seeing _runway_ in startup writing. Make me a card for that meaning, not the airport one."
 - "Make cards for every word I got wrong in that article."
 - "Is my _platitudinous_ card ready yet?"
+- "Take _banyan_ out of my deck, I know it now."
 - "Delete the _moat_ card I made earlier."
+
+Ask for a word and the AI looks it up first, adding the curated card when Inoh already has one and
+generating a fresh one only when it does not.
+
+## Removing versus deleting
+
+These are different things, and the tools keep them apart.
+
+Taking a **dictionary card** out of your deck just ends your review of it. The word stays in Inoh
+for everyone, and you can add it back whenever you like, though you start its review progress over.
+
+A **card you made** cannot sit outside a deck, because nobody else has a copy to keep it alive.
+Removing one means deleting it, so `remove_card_from_deck` declines and points at
+`delete_custom_card` instead. Deleting is permanent and takes the image and audio with it.
 
 ## Cards you create
 

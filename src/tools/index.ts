@@ -1,9 +1,11 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { SupabaseConnection } from '../supabase/index.js';
+import { registerAddCardToDeckTool } from './add-card-to-deck.js';
 import { registerCheckAccountTool } from './check-account.js';
 import { registerCheckCardCreationStatusTool } from './check-card-creation-status.js';
 import { registerCreateCardTool } from './create-card.js';
 import { registerDeleteCustomCardTool } from './delete-custom-card.js';
+import { registerRemoveCardFromDeckTool } from './remove-card-from-deck.js';
 import { registerSearchDictionaryTool } from './search-dictionary.js';
 
 /**
@@ -18,6 +20,8 @@ import { registerSearchDictionaryTool } from './search-dictionary.js';
 export const registerAllTools = (server: McpServer, connection: SupabaseConnection): void => {
   registerCheckAccountTool(server);
   registerSearchDictionaryTool(server, connection);
+  registerAddCardToDeckTool(server, connection);
+  registerRemoveCardFromDeckTool(server, connection);
   registerCreateCardTool(server, connection);
   registerCheckCardCreationStatusTool(server, connection);
   registerDeleteCustomCardTool(server, connection);
