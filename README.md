@@ -75,6 +75,11 @@ moment it appears, alongside curated cards. Making one takes about 20 seconds.
 Tell the AI which sense you mean when a word has several. "Runway" as months of cash is a different
 card from "runway" at an airport, and nothing reviews the result before it reaches you.
 
+If Inoh already has the word, generating stops before it starts and points you at the existing
+card. A curated card is written and checked by Inoh, and adding one costs nothing against your
+monthly allowance, so it is the better choice nearly always. When you really do want your own card
+for a sense the existing one does not cover, say so and the AI can go ahead anyway.
+
 **How many you can make**, per calendar month:
 
 | Plan | Cards per month |

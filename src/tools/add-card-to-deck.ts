@@ -9,6 +9,7 @@ import {
   findDeckByName,
   findDefaultDeck,
 } from '../decks/index.js';
+import { findCardById, findCardsByWord, type DictionaryCard } from '../dictionary/index.js';
 import { createUserSupabaseClient, type SupabaseConnection } from '../supabase/index.js';
 import { buildWordPageUrl } from '../web-app-urls.js';
 import { formatCardChoices, requireOneCardSelector } from './card-selection.js';
@@ -18,60 +19,6 @@ const POSTGRES_UNIQUE_VIOLATION = '23505';
 
 /** Prefix the enforce_card_limit trigger puts on its rejections. */
 const CARD_LIMIT_ERROR_PREFIX = 'CARD_LIMIT:';
-
-const DICTIONARY_CARD_COLUMNS = 'id, word, definition, owner_user_id, orphaned_at';
-
-interface DictionaryCard {
-  id: string;
-  word: string;
-  definition: string;
-  owner_user_id: string | null;
-  orphaned_at: string | null;
-}
-
-/**
- * Look a card up by id.
- *
- * RLS already limits this to curated entries and the caller's own cards, so an
- * id belonging to someone else's card simply finds nothing.
- */
-const _findCardById = async (
-  supabase: SupabaseClient,
-  cardId: string,
-): Promise<DictionaryCard | null> => {
-  const { data, error } = await supabase
-    .from('dictionary')
-    .select(DICTIONARY_CARD_COLUMNS)
-    .eq('id', cardId)
-    .maybeSingle();
-
-  if (error) {
-    throw new Error(`Could not look that card up: ${error.message}`);
-  }
-
-  return data as DictionaryCard | null;
-};
-
-/**
- * Every card for a word the caller is allowed to see: curated entries plus
- * their own. Unlike search_dictionary, which is curated-only, this has to
- * include their own cards so they can put one back in a deck.
- */
-const _findCardsByWord = async (
-  supabase: SupabaseClient,
-  word: string,
-): Promise<DictionaryCard[]> => {
-  const { data, error } = await supabase
-    .from('dictionary')
-    .select(DICTIONARY_CARD_COLUMNS)
-    .ilike('word', word);
-
-  if (error) {
-    throw new Error(`Could not look "${word}" up: ${error.message}`);
-  }
-
-  return (data ?? []) as DictionaryCard[];
-};
 
 /**
  * The deck this card already sits in, if any.
@@ -152,14 +99,14 @@ export const registerAddCardToDeckTool = (
 
       let card: DictionaryCard | null = null;
       if (cardId !== undefined) {
-        card = await _findCardById(supabase, cardId);
+        card = await findCardById(supabase, cardId);
         if (card === null) {
           return buildToolError(
             `No card found with id ${cardId}. Search the dictionary again to get a current id.`,
           );
         }
       } else if (word !== undefined) {
-        const matches = await _findCardsByWord(supabase, word);
+        const matches = await findCardsByWord(supabase, word);
 
         if (matches.length === 0) {
           return buildToolError(
