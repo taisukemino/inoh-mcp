@@ -29,14 +29,13 @@ The first tool call opens a browser tab asking you to sign in and approve access
 
 ## What you can ask for
 
-| Tool                | What it does                                                   |
-| ------------------- | -------------------------------------------------------------- |
-| `search_dictionary` | Look a word or phrase up in the Inoh dictionary                |
-| `create_card`       | Build a complete flashcard for a word and file it in your deck |
-| `get_card_status`   | Check whether a card you asked for is ready                    |
-| `delete_card`       | Permanently delete a card you created, including its media     |
-| `whoami`            | Show which Inoh account you are signed in as                   |
-| `ping`              | Connectivity check                                             |
+| Tool                         | What it does                                                   |
+| ---------------------------- | -------------------------------------------------------------- |
+| `search_dictionary`          | Look a word or phrase up in the Inoh dictionary                |
+| `create_card`                | Build a complete flashcard for a word and file it in your deck |
+| `check_card_creation_status` | Check whether a card you asked for is ready                    |
+| `delete_custom_card`         | Permanently delete a card you created, including its media     |
+| `check_account`              | Show which Inoh account you are signed in as                   |
 
 Things people actually say:
 

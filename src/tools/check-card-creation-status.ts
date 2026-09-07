@@ -13,20 +13,20 @@ import { createUserSupabaseClient, type SupabaseConnection } from '../supabase/i
 const RECENT_CARD_LIMIT = 5;
 
 /**
- * Registers a `get_card_status` tool that reports whether the cards a user
- * asked for are ready yet.
+ * Registers a `check_card_creation_status` tool that reports whether the cards
+ * a user asked for are ready yet.
  *
  * @param server - The MCP server to register the tool on
  * @param connection - Supabase project URL and publishable key
  */
-export const registerGetCardStatusTool = (
+export const registerCheckCardCreationStatusTool = (
   server: McpServer,
   connection: SupabaseConnection,
 ): void => {
   server.registerTool(
-    'get_card_status',
+    'check_card_creation_status',
     {
-      title: 'Check card status',
+      title: 'Check card creation status',
       description:
         'Reports how the custom cards the signed-in user asked for are coming along: still ' +
         'generating, ready (with a link to the card), or failed (with the reason). Pass the ' +

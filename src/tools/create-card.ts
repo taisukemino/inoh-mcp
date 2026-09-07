@@ -64,10 +64,10 @@ export const registerCreateCardTool = (server: McpServer, connection: SupabaseCo
         "user's deck. The card is theirs alone: it never enters the shared Inoh dictionary " +
         'or the Discover feed. Inoh generates everything needed to quiz on it — definition, ' +
         'example sentence, pronunciation audio, image, phonetic and quiz distractors — so ' +
-        'this takes about a minute and finishes in the background. Call get_card_status to ' +
-        'check on it. Search the dictionary first: if a good curated card already exists, ' +
-        'adding that one is better than making a duplicate. Each plan allows a set number of ' +
-        'custom cards per month.',
+        'this takes about a minute and finishes in the background. Call ' +
+        'check_card_creation_status to check on it. Search the dictionary first: if a good ' +
+        'curated card already exists, adding that one is better than making a duplicate. ' +
+        'Each plan allows a set number of custom cards per month.',
       inputSchema: {
         word: z
           .string()
@@ -130,7 +130,7 @@ export const registerCreateCardTool = (server: McpServer, connection: SupabaseCo
         if (error.code === POSTGRES_UNIQUE_VIOLATION) {
           return buildToolError(
             `A card for "${word}" with that same context is already being made. ` +
-              'Call get_card_status to see how it is going.',
+              'Call check_card_creation_status to see how it is going.',
           );
         }
         // Reason: both limit triggers raise messages written for the user, so
@@ -168,7 +168,7 @@ export const registerCreateCardTool = (server: McpServer, connection: SupabaseCo
                 null,
                 2,
               )}\n\n` +
-              'Call get_card_status with this requestId to check whether it is ready.',
+              'Call check_card_creation_status with this requestId to check whether it is ready.',
           },
         ],
       };
