@@ -84,7 +84,7 @@ export const registerDeleteCustomCardTool = (
         'Permanently deletes a card the signed-in user created with create_custom_card: the card ' +
         'itself, its place in their deck, and its image and audio files. This cannot be ' +
         'undone, so confirm with the user first. Identify the card by `word`, or by `cardId` ' +
-        'from check_card_creation_status. Only cards the user made can be deleted — a card ' +
+        'from custom_card_creation_status. Only cards the user made can be deleted — a card ' +
         'from the shared Inoh dictionary belongs to everyone, and removing one of those from ' +
         'a deck is done in the Inoh app. Deleting a card does not give back the monthly ' +
         'custom card allowance it used.',
@@ -99,7 +99,7 @@ export const registerDeleteCustomCardTool = (
           .string()
           .uuid()
           .optional()
-          .describe('The cardId from check_card_creation_status. Use this or word.'),
+          .describe('The cardId from custom_card_creation_status. Use this or word.'),
       },
     },
     async ({ word, cardId }, extra) => {
