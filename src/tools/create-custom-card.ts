@@ -26,17 +26,20 @@ const DAILY_CEILING_ERROR_PREFIX = 'DAILY_CARD_REQUEST_LIMIT:';
 const _buildDefaultContext = (word: string): string => `the most common meaning of "${word}"`;
 
 /**
- * Registers a `create_card` tool that generates a full Inoh card for the
+ * Registers a `create_custom_card` tool that generates a full Inoh card for the
  * signed-in user and adds it to their deck.
  *
  * @param server - The MCP server to register the tool on
  * @param connection - Supabase project URL and publishable key
  */
-export const registerCreateCardTool = (server: McpServer, connection: SupabaseConnection): void => {
+export const registerCreateCustomCardTool = (
+  server: McpServer,
+  connection: SupabaseConnection,
+): void => {
   server.registerTool(
-    'create_card',
+    'create_custom_card',
     {
-      title: 'Create a card',
+      title: 'Create a custom card',
       description:
         'Creates a full Inoh flashcard for a word or phrase and adds it to the signed-in ' +
         "user's deck. The card is theirs alone: it never enters the shared Inoh dictionary " +

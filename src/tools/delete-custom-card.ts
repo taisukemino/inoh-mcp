@@ -81,7 +81,7 @@ export const registerDeleteCustomCardTool = (
     {
       title: 'Delete a card you created',
       description:
-        'Permanently deletes a card the signed-in user created with create_card: the card ' +
+        'Permanently deletes a card the signed-in user created with create_custom_card: the card ' +
         'itself, its place in their deck, and its image and audio files. This cannot be ' +
         'undone, so confirm with the user first. Identify the card by `word`, or by `cardId` ' +
         'from check_card_creation_status. Only cards the user made can be deleted — a card ' +
@@ -120,7 +120,7 @@ export const registerDeleteCustomCardTool = (
         if (matches.length === 0) {
           return buildToolError(
             `The user has no custom card for "${word}". Only cards they created with ` +
-              'create_card can be deleted; cards from the Inoh dictionary cannot.',
+              'create_custom_card can be deleted; cards from the Inoh dictionary cannot.',
           );
         }
 

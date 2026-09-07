@@ -115,7 +115,7 @@ export const registerAddCardToDeckTool = (
       description:
         "Adds a card that already exists to one of the signed-in user's decks, so it comes " +
         'up in their reviews. Identify it by `cardId` from search_dictionary, or by `word`. ' +
-        'Use this for words already in the Inoh dictionary; use create_card only when the ' +
+        'Use this for words already in the Inoh dictionary; use create_custom_card only when the ' +
         'dictionary does not have the word, since a curated card is better than a generated ' +
         'duplicate. Adding costs nothing against the monthly custom card allowance, though ' +
         "each plan caps how many cards a deck can hold in total. A card's review progress " +
@@ -164,7 +164,7 @@ export const registerAddCardToDeckTool = (
         if (matches.length === 0) {
           return buildToolError(
             `"${word}" is not in the Inoh dictionary and the user has no card for it. ` +
-              'Use create_card to have one made.',
+              'Use create_custom_card to have one made.',
           );
         }
 
