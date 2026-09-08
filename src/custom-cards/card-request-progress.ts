@@ -5,7 +5,7 @@ export type CustomCardProgress = 'generating' | 'ready' | 'failed' | 'deleted';
 
 /** Columns every custom-card tool reads back from `card_requests`. */
 export const CARD_REQUEST_COLUMNS =
-  'id, word, context, status, error_reason, error_detail, dictionary_id, created_at';
+  'id, word, context, status, error_reason, error_detail, dictionary_id, target_dictionary_id, created_at';
 
 export interface CardRequestRow {
   id: string;
@@ -15,6 +15,7 @@ export interface CardRequestRow {
   error_reason: string | null;
   error_detail: string | null;
   dictionary_id: string | null;
+  target_dictionary_id: string | null;
   created_at: string;
 }
 
@@ -28,6 +29,11 @@ export interface CustomCardStatus {
   cardId?: string;
   /** Set once the card exists, so the client can link straight to it. */
   cardUrl?: string;
+  /**
+   * Set when this request rewrites a card that already existed rather than
+   * making a new one, so a caller does not report a redo as a new card.
+   */
+  redoOfCardId?: string;
   /** Why it could not be made, when it could not be made. */
   error?: string;
   /** Set when the card was made and later deleted. */
@@ -54,6 +60,17 @@ const _readProgress = (row: CardRequestRow): CustomCardProgress => {
 };
 
 /**
+ * How to describe one request in a sentence: making a card, or redoing one.
+ *
+ * @param status - A shaped status
+ * @returns A phrase naming the card and what is happening to it
+ */
+export const describeCustomCardStatus = (status: CustomCardStatus): string =>
+  status.redoOfCardId === undefined
+    ? `Card "${status.word}" is ${status.progress}.`
+    : `The redo of "${status.word}" is ${status.progress}.`;
+
+/**
  * Shape one `card_requests` row into the status a tool reports.
  *
  * @param row - A row belonging to the signed-in user
@@ -68,6 +85,7 @@ export const toCustomCardStatus = (row: CardRequestRow): CustomCardStatus => {
     context: row.context,
     progress,
     requestedAt: row.created_at,
+    ...(row.target_dictionary_id === null ? {} : { redoOfCardId: row.target_dictionary_id }),
     ...(progress === 'ready' && row.dictionary_id !== null
       ? { cardId: row.dictionary_id, cardUrl: buildWordPageUrl(row.dictionary_id) }
       : {}),

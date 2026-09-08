@@ -1,7 +1,11 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import * as z from 'zod/v4';
 import { getAuthenticatedUser, getUserAccessToken } from '../auth/index.js';
-import { fetchCustomCardQuota } from '../custom-cards/index.js';
+import {
+  buildDefaultContext,
+  describeCardRequestInsertError,
+  fetchCustomCardQuota,
+} from '../custom-cards/index.js';
 import { MAX_WORD_LENGTH } from '../constants.js';
 import { describeMissingDeck, fetchDecks, findDeckByName } from '../decks/index.js';
 import { findCardsByWord, type DictionaryCard } from '../dictionary/index.js';
@@ -11,21 +15,6 @@ import { formatCardChoices } from './card-selection.js';
 import { buildToolError } from './tool-result.js';
 
 const MAX_CONTEXT_LENGTH = 300;
-
-const POSTGRES_UNIQUE_VIOLATION = '23505';
-
-/** Prefixes the database uses for limits, so each gets its own explanation. */
-const QUOTA_ERROR_PREFIX = 'CUSTOM_CARD_LIMIT:';
-const DAILY_CEILING_ERROR_PREFIX = 'DAILY_CARD_REQUEST_LIMIT:';
-
-/**
- * Sense hint stored when the caller does not give one.
- *
- * Reason: card_requests.context is NOT NULL and is fed to the generator as the
- * sense to teach, so it cannot simply be blank. Naming the common meaning is
- * both true to what the user asked for and a usable hint.
- */
-const _buildDefaultContext = (word: string): string => `the most common meaning of "${word}"`;
 
 /**
  * Explain that the word is already covered, and what to do instead.
@@ -57,6 +46,15 @@ const _describeExistingCards = (word: string, existingCards: DictionaryCard[]): 
     paragraphs.push(
       `The user has already made ${ownCards.length === 1 ? 'a card' : `${ownCards.length} cards`} ` +
         `for "${word}":\n${formatCardChoices(ownCards)}`,
+    );
+  }
+
+  if (ownCards.length > 0) {
+    paragraphs.push(
+      'If the card they already made is simply not good enough — wrong sense, dull sentence, ' +
+        'unhelpful image — update_custom_card remakes it in place and keeps its review ' +
+        'progress, which is almost always what they want instead of a second card for the ' +
+        'same word.',
     );
   }
 
@@ -158,7 +156,7 @@ export const registerCreateCustomCardTool = (
         .insert({
           user_id: user.id,
           word,
-          context: context ?? _buildDefaultContext(word),
+          context: context ?? buildDefaultContext(word),
           destination: 'custom',
           source: 'mcp',
           deck_id: deckId,
@@ -167,23 +165,13 @@ export const registerCreateCustomCardTool = (
         .single();
 
       if (error) {
-        if (error.code === POSTGRES_UNIQUE_VIOLATION) {
-          return buildToolError(
-            `A card for "${word}" with that same context is already being made. ` +
-              'Call custom_card_creation_status to see how it is going.',
-          );
-        }
-        // Reason: both limit triggers raise messages written for the user, so
-        // pass them through rather than restating them worse.
-        if (error.message.includes(QUOTA_ERROR_PREFIX)) {
-          const [, quotaExplanation] = error.message.split(QUOTA_ERROR_PREFIX);
-          return buildToolError(quotaExplanation?.trim() ?? error.message);
-        }
-        if (error.message.includes(DAILY_CEILING_ERROR_PREFIX)) {
-          return buildToolError(
-            'That is a lot of cards in one day. Inoh has stopped accepting new ones until ' +
-              'tomorrow as a safety measure.',
-          );
+        const explanation = describeCardRequestInsertError(
+          error,
+          `A card for "${word}" with that same context is already being made. ` +
+            'Call custom_card_creation_status to see how it is going.',
+        );
+        if (explanation !== null) {
+          return buildToolError(explanation);
         }
         throw new Error(`Could not start the card: ${error.message}`);
       }

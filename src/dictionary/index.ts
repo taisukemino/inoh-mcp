@@ -1,1 +1,6 @@
-export { findCardById, findCardsByWord, type DictionaryCard } from './find-cards.js';
+export {
+  findCardById,
+  findCardsByWord,
+  findOwnCardsByWord,
+  type DictionaryCard,
+} from './find-cards.js';

@@ -1,41 +1,12 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import type { SupabaseClient } from '@supabase/supabase-js';
 import * as z from 'zod/v4';
 import { getUserAccessToken } from '../auth/index.js';
+import { findOwnCardsByWord } from '../dictionary/index.js';
 import { createUserSupabaseClient, type SupabaseConnection } from '../supabase/index.js';
+import { formatCardChoices } from './card-selection.js';
 import { buildToolError } from './tool-result.js';
 
 const DELETE_CUSTOM_CARD_FUNCTION = 'delete-custom-card';
-
-interface OwnedCard {
-  id: string;
-  word: string;
-  definition: string;
-}
-
-/**
- * Find the caller's own custom cards for a word.
- *
- * Reason: RLS lets a user read curated entries too, so `owner_user_id is not
- * null` is what keeps this to cards they made. Under RLS those can only ever be
- * their own, so no user filter is needed.
- */
-const _findOwnCardsByWord = async (
-  supabase: SupabaseClient,
-  word: string,
-): Promise<OwnedCard[]> => {
-  const { data, error } = await supabase
-    .from('dictionary')
-    .select('id, word, definition')
-    .ilike('word', word)
-    .not('owner_user_id', 'is', null);
-
-  if (error) {
-    throw new Error(`Could not look up your cards: ${error.message}`);
-  }
-
-  return (data ?? []) as OwnedCard[];
-};
 
 /** The response supabase-js attaches to a FunctionsHttpError. */
 interface FunctionErrorContext {
@@ -87,7 +58,8 @@ export const registerDeleteCustomCardTool = (
         'from custom_card_creation_status. Only cards the user made can be deleted — a card ' +
         'from the shared Inoh dictionary belongs to everyone, and removing one of those from ' +
         'a deck is done in the Inoh app. Deleting a card does not give back the monthly ' +
-        'custom card allowance it used.',
+        'custom card allowance it used. If the card is simply not good enough rather than ' +
+        'unwanted, update_custom_card remakes it in place and keeps its review progress.',
       inputSchema: {
         word: z
           .string()
@@ -115,7 +87,7 @@ export const registerDeleteCustomCardTool = (
 
       let targetCardId = cardId;
       if (word !== undefined) {
-        const matches = await _findOwnCardsByWord(supabase, word);
+        const matches = await findOwnCardsByWord(supabase, word);
 
         if (matches.length === 0) {
           return buildToolError(
@@ -125,12 +97,9 @@ export const registerDeleteCustomCardTool = (
         }
 
         if (matches.length > 1) {
-          const options = matches
-            .map((card) => `- cardId ${card.id}: ${card.definition}`)
-            .join('\n');
           return buildToolError(
             `The user has ${matches.length} custom cards for "${word}". Ask which one, then ` +
-              `call delete_custom_card again with its cardId:\n${options}`,
+              `call delete_custom_card again with its cardId:\n${formatCardChoices(matches)}`,
           );
         }
 
