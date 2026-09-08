@@ -4,6 +4,7 @@ import { getAuthenticatedUser, getUserAccessToken } from '../auth/index.js';
 import {
   buildDefaultContext,
   describeCardRequestInsertError,
+  describeLowAllowance,
   fetchCustomCardQuota,
 } from '../custom-cards/index.js';
 import { MAX_WORD_LENGTH } from '../constants.js';
@@ -176,7 +177,9 @@ export const registerCreateCustomCardTool = (
         throw new Error(`Could not start the card: ${error.message}`);
       }
 
-      const quota = await fetchCustomCardQuota(supabase);
+      // Reason: read only to decide whether the allowance is worth raising. The
+      // tally is deliberately not reported on every card — see describeLowAllowance.
+      const lowAllowanceNote = describeLowAllowance(await fetchCustomCardQuota(supabase));
 
       return {
         content: [
@@ -191,12 +194,12 @@ export const registerCreateCustomCardTool = (
                   word,
                   status: 'generating',
                   trackAt: MY_REQUESTS_URL,
-                  customCardsUsedThisMonth: `${quota.used} of ${quota.limit} (${quota.plan} plan)`,
                 },
                 null,
                 2,
               )}\n\n` +
-              'Call custom_card_creation_status with this requestId to check whether it is ready.',
+              'Call custom_card_creation_status with this requestId to check whether it is ready.' +
+              `${lowAllowanceNote === null ? '' : `\n\n${lowAllowanceNote}`}`,
           },
         ],
       };
