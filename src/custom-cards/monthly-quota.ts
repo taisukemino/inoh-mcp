@@ -55,6 +55,33 @@ const _readEntitledPlan = async (supabase: SupabaseClient): Promise<Subscription
 };
 
 /**
+ * How few cards left before the allowance is worth raising unprompted.
+ *
+ * Reason: at 3 of 300 the tally is noise — it carries no information and no
+ * decision hangs on it. Near the end it is a genuine heads-up, because the next
+ * card may be refused.
+ */
+const LOW_ALLOWANCE_THRESHOLD = 5;
+
+/**
+ * A sentence about the allowance, or null when it is not worth saying.
+ *
+ * Reason: a tool result is the prompt for whatever the AI client says next, so
+ * anything returned here gets repeated to the user. Reporting the tally on
+ * every card is how "3 of 300" ends up in a message about one card. Callers
+ * that the user has explicitly pointed at their allowance
+ * (custom_card_creation_status) report it regardless; this is for the rest.
+ *
+ * @param quota - The caller's current allowance
+ * @returns A line to append to a success message, or null to say nothing
+ */
+export const describeLowAllowance = (quota: CustomCardQuota): string | null =>
+  quota.remaining > LOW_ALLOWANCE_THRESHOLD
+    ? null
+    : `Worth mentioning: only ${quota.remaining} custom card${quota.remaining === 1 ? '' : 's'} ` +
+      `left this month on the ${quota.plan} plan. The quota resets on the 1st.`;
+
+/**
  * How many custom cards the signed-in user has left this month.
  *
  * @param supabase - Client acting as the signed-in user
