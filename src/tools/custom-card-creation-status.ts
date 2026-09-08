@@ -3,6 +3,7 @@ import * as z from 'zod/v4';
 import { getUserAccessToken } from '../auth/index.js';
 import {
   CARD_REQUEST_COLUMNS,
+  describeCustomCardStatus,
   fetchCustomCardQuota,
   toCustomCardStatus,
   type CardRequestRow,
@@ -30,15 +31,20 @@ export const registerCustomCardCreationStatusTool = (
       description:
         'Reports how the custom cards the signed-in user asked for are coming along: still ' +
         'generating, ready (with a link to the card), or failed (with the reason). Pass the ' +
-        'requestId from create_custom_card to check one card, or omit it for their most recent ' +
-        'cards. Generation normally takes under a minute, so if a card is still generating it ' +
-        'is worth waiting a moment before checking again.',
+        'requestId from create_custom_card or update_custom_card to check one, or omit it for ' +
+        'their most recent cards. A `redoOfCardId` means that entry is remaking a card they ' +
+        'already had rather than adding a new one. Generation normally takes under a minute, ' +
+        'so if something is still generating it is worth waiting a moment before checking ' +
+        'again.',
       inputSchema: {
         requestId: z
           .string()
           .uuid()
           .optional()
-          .describe('The requestId returned by create_custom_card. Omit to list recent cards.'),
+          .describe(
+            'The requestId returned by create_custom_card or update_custom_card. Omit to list ' +
+              'recent cards.',
+          ),
       },
     },
     async ({ requestId }, extra) => {
@@ -84,7 +90,7 @@ export const registerCustomCardCreationStatusTool = (
         requestId === undefined
           ? `${statuses.length} most recent custom card(s). ` +
             `${quota.used} of ${quota.limit} used this month on the ${quota.plan} plan.`
-          : `Card "${firstStatus.word}" is ${firstStatus.progress}.`;
+          : describeCustomCardStatus(firstStatus);
 
       return {
         content: [{ type: 'text', text: `${summary}\n${JSON.stringify(statuses, null, 2)}` }],

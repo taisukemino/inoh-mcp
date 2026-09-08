@@ -74,3 +74,32 @@ export const findCardById = async (
 
   return data as DictionaryCard | null;
 };
+
+/**
+ * The caller's own custom cards for a word.
+ *
+ * Reason: RLS lets a user read curated entries too, so `owner_user_id is not
+ * null` is what keeps this to cards they made. Under RLS those can only ever be
+ * their own, so no user filter is needed.
+ *
+ * @param supabase - Client acting as the signed-in user
+ * @param word - The exact word to match, ignoring case
+ * @returns The caller's own cards for that word
+ * @throws {Error} When the lookup fails
+ */
+export const findOwnCardsByWord = async (
+  supabase: SupabaseClient,
+  word: string,
+): Promise<DictionaryCard[]> => {
+  const { data, error } = await supabase
+    .from('dictionary')
+    .select(DICTIONARY_CARD_COLUMNS)
+    .ilike('word', word)
+    .not('owner_user_id', 'is', null);
+
+  if (error) {
+    throw new Error(`Could not look up your cards: ${error.message}`);
+  }
+
+  return (data ?? []) as DictionaryCard[];
+};
