@@ -35,6 +35,7 @@ The first tool call opens a browser tab asking you to sign in and approve access
 | `add_card_to_deck`            | Put a card that already exists into one of your decks          |
 | `remove_card_from_deck`       | Take a dictionary card back out of your deck                   |
 | `create_custom_card`          | Build a complete flashcard for a word and file it in your deck |
+| `update_custom_card`          | Remake a card you created, keeping its review progress         |
 | `custom_card_creation_status` | Check whether a card you asked for is ready                    |
 | `delete_custom_card`          | Permanently delete a card you created, including its media     |
 | `check_account`               | Show which Inoh account you are signed in as                   |
@@ -46,6 +47,8 @@ Things people actually say:
 - "Make cards for every word I got wrong in that article."
 - "Is my _platitudinous_ card ready yet?"
 - "Take _banyan_ out of my deck, I know it now."
+- "My _moat_ card explains the wrong thing — redo it for the business sense."
+- "That picture on my _runway_ card is useless. Make the card again."
 - "Delete the _moat_ card I made earlier."
 
 Ask for a word and the AI looks it up first, adding the curated card when Inoh already has one and
@@ -87,6 +90,23 @@ for a sense the existing one does not cover, say so and the AI can go ahead anyw
 | Free | 50              |
 | Plus | 300             |
 | Pro  | 1,000           |
+
+### When a card comes out wrong
+
+Ask for it again rather than deleting it. `update_custom_card` regenerates the definition, example
+sentence, image, audio and quiz options and writes them over the same card, so **the card keeps its
+place in your deck and everything Inoh knows about how well you remember it**. Deleting and remaking
+would throw that away and start the word over.
+
+Say which sense you meant and it teaches that instead. Say nothing and it simply has another go at
+the sense it already had, which is what you want when the meaning was right but the sentence was
+flat or the picture unhelpful.
+
+A redo costs one card from your monthly allowance, because it generates a new image — the expensive
+part of a card. It cannot change which word the card teaches: that is a different card, so delete
+this one and make that one.
+
+### Deleting
 
 Deleting a card removes it completely: the card, its place in your deck, and its image and audio
 files. It does not give back the monthly allowance it used. Removing one of your own cards from a

@@ -7,6 +7,7 @@ import { registerCreateCustomCardTool } from './create-custom-card.js';
 import { registerDeleteCustomCardTool } from './delete-custom-card.js';
 import { registerRemoveCardFromDeckTool } from './remove-card-from-deck.js';
 import { registerSearchDictionaryTool } from './search-dictionary.js';
+import { registerUpdateCustomCardTool } from './update-custom-card.js';
 
 /**
  * Registers every tool the Inoh MCP server exposes.
@@ -23,6 +24,7 @@ export const registerAllTools = (server: McpServer, connection: SupabaseConnecti
   registerAddCardToDeckTool(server, connection);
   registerRemoveCardFromDeckTool(server, connection);
   registerCreateCustomCardTool(server, connection);
+  registerUpdateCustomCardTool(server, connection);
   registerCustomCardCreationStatusTool(server, connection);
   registerDeleteCustomCardTool(server, connection);
 };
