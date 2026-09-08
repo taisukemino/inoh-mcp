@@ -1,5 +1,6 @@
 export {
   CUSTOM_CARD_MONTHLY_LIMITS,
+  describeLowAllowance,
   fetchCustomCardQuota,
   type CustomCardQuota,
   type SubscriptionPlan,
