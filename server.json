@@ -1,12 +1,12 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-  "name": "io.github.taisukemino/inoh-mcp",
+  "name": "app.inoh/inoh-mcp",
   "title": "Inoh",
   "description": "Search the Inoh dictionary and create, track and delete your own vocabulary flashcards.",
   "version": "0.0.1",
   "websiteUrl": "https://inoh.app",
   "repository": {
-    "url": "https://github.com/taisukemino/inoh-mcp",
+    "url": "https://github.com/inoh-app/inoh-mcp",
     "source": "github"
   },
   "remotes": [
