@@ -7,7 +7,7 @@ import {
   describeLowAllowance,
   fetchCustomCardQuota,
 } from '../custom-cards/index.js';
-import { MAX_WORD_LENGTH } from '../constants.js';
+import { MAX_WORD_LENGTH, WORD_CHARACTER_REGEX } from '../constants.js';
 import { describeMissingDeck, fetchDecks, findDeckByName } from '../decks/index.js';
 import { findCardsByWord, type DictionaryCard } from '../dictionary/index.js';
 import { createUserSupabaseClient, type SupabaseConnection } from '../supabase/index.js';
@@ -16,6 +16,30 @@ import { formatCardChoices } from './card-selection.js';
 import { buildToolError } from './tool-result.js';
 
 const MAX_CONTEXT_LENGTH = 300;
+
+/** Canonical apostrophe (U+0027), the one the Inoh dictionary stores. */
+const CANONICAL_APOSTROPHE = "'";
+
+/**
+ * Apostrophe-like characters that mean the same thing as U+0027.
+ *
+ * Mirrors APOSTROPHE_VARIANTS in the Inoh app: iOS keyboards produce U+2019,
+ * and a model writing prose is just as likely to.
+ */
+const APOSTROPHE_VARIANTS = /[‘’ʼʹ]/g;
+
+/**
+ * Rewrite curly and modifier apostrophes as U+0027.
+ *
+ * Reason: runs before the character check so "one’s own" is accepted rather
+ * than read as a foreign script, and before the word reaches the dictionary
+ * lookup and the request row, which both compare against U+0027.
+ *
+ * @param word - The word as the caller sent it
+ * @returns The same word with one kind of apostrophe
+ */
+const _normalizeApostrophes = (word: string): string =>
+  word.replace(APOSTROPHE_VARIANTS, CANONICAL_APOSTROPHE);
 
 /**
  * Explain that the word is already covered, and what to do instead.
@@ -92,14 +116,26 @@ export const registerCreateCustomCardTool = (
         'custom_card_creation_status to check on it. If the Inoh dictionary already has the ' +
         'word, this stops and points at the existing card rather than making a duplicate, ' +
         'since a curated card is better and costs no allowance. Each plan allows a set ' +
-        'number of custom cards per month.',
+        'number of custom cards per month. Inoh only generates English cards, so `word` has ' +
+        'to be English — but the user can ask in any language, and `context` can be written ' +
+        'in whatever language they used.',
       inputSchema: {
         word: z
           .string()
           .trim()
           .min(1)
           .max(MAX_WORD_LENGTH)
-          .describe('The word or phrase the card teaches, e.g. "runway" or "spill the beans"'),
+          .transform(_normalizeApostrophes)
+          .refine((word) => WORD_CHARACTER_REGEX.test(word), {
+            message:
+              'Inoh generates cards for English words, so the word to teach has to be in ' +
+              'English. The user can ask in any language, and `context` can be in any ' +
+              'language too — only this word is restricted.',
+          })
+          .describe(
+            'The word or phrase the card teaches, e.g. "runway" or "spill the beans". Must be ' +
+              'an English word: Inoh only generates English cards.',
+          ),
         context: z
           .string()
           .trim()
@@ -109,7 +145,8 @@ export const registerCreateCustomCardTool = (
           .describe(
             'Which sense of the word to teach, e.g. "months of cash a startup has left, not ' +
               'the airport kind". Strongly recommended for words with several meanings, since ' +
-              'nobody reviews the result before it reaches the user.',
+              'nobody reviews the result before it reaches the user. May be in any language — ' +
+              "no need to translate the user's own words.",
           ),
         deckName: z
           .string()
