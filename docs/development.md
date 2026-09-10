@@ -75,9 +75,15 @@ Add the minted token to your MCP client:
 
 ```bash
 # Claude Code
-claude mcp add --scope user --transport http inoh-local http://127.0.0.1:3333/mcp \
-  --header "Authorization: Bearer $TOKEN"
+TOKEN=$(pnpm -s token:local --email you@example.com --user <existing-auth-users-uuid>) \
+  && claude mcp add --scope user --transport http inoh-local http://127.0.0.1:3333/mcp \
+    --header "Authorization: Bearer $TOKEN"
 ```
+
+Chain the two with `&&` rather than running them separately. If `$TOKEN` is empty — a fresh shell,
+or a mint that failed — the header is written as the bare word `Bearer` and the server is
+registered but permanently broken, reporting `Invalid Authorization header format` on every
+connect. `&&` means a failed mint writes no config at all.
 
 Or paste it as a Bearer token in any HTTP-capable MCP client.
 
