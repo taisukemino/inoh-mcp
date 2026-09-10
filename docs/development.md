@@ -75,11 +75,20 @@ Add the minted token to your MCP client:
 
 ```bash
 # Claude Code
-claude mcp add --transport http inoh http://127.0.0.1:3333/mcp \
+claude mcp add --transport http inoh-local http://127.0.0.1:3333/mcp \
   --header "Authorization: Bearer $TOKEN"
 ```
 
 Or paste it as a Bearer token in any HTTP-capable MCP client.
+
+Name it `inoh-local`, not `inoh`, so it cannot be confused with the hosted server most people
+register as `inoh` (see [installation.md](./installation.md)). Leave the scope at its default
+`local` here: the config line carries a bearer token, which does not belong in a committed
+`.mcp.json`, and you only need the dev server in this repo.
+
+`TOKEN_LIFETIME` in [`scripts/mint-local-token.ts`](./../scripts/mint-local-token.ts) is `1h`, so
+the header goes stale and you re-run both commands. Raise it if that gets tiresome; there is no
+OAuth flow locally, so the header is the only way in.
 
 ---
 

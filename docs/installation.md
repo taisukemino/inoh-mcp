@@ -198,8 +198,13 @@ session from that point on.
 ### Claude Code
 
 ```bash
-claude mcp add --transport http inoh https://mcp.inoh.app/mcp
+claude mcp add --scope user --transport http inoh https://mcp.inoh.app/mcp
 ```
+
+`--scope user` is what makes Inoh available in every folder. Leave it out and Claude Code
+defaults to `--scope local`, which registers Inoh only for the directory you happened to run
+the command in, and it will look missing everywhere else. The output line tells you which one
+you got: `to user config` rather than `to local config`.
 
 Confirm it was added:
 
@@ -255,9 +260,11 @@ url = "https://mcp.inoh.app/mcp"
 
 Grok will open a browser sign-in tab on first use and store the token automatically.
 
-> **Scope:** All three CLI tools support project-level config (active only in the current folder)
-> by adding `--scope project` to the `mcp add` command. Without it, the server is registered
-> globally for your user account.
+> **Scope:** these three CLIs disagree on where they write, so the defaults are worth knowing.
+> **Claude Code** defaults to `local` (the current folder only) — pass `--scope user`, as above,
+> to get Inoh everywhere. **Grok** already defaults to `user`; `--scope project` writes
+> `./.grok/config.toml` instead, shared with anyone working in that folder. **Codex** has no
+> scope flag and always writes `~/.codex/config.toml`, so it is user-wide either way.
 
 ---
 
