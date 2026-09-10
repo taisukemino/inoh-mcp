@@ -13,6 +13,10 @@ https://mcp.inoh.app/mcp
 The first time you ask your AI to do something with Inoh, a sign-in tab will open in your
 browser. Sign in with your [Inoh account](https://inoh.app) and approve access. That is it.
 
+Every step below installs Inoh **for your whole user account**, so it is available in every
+project and folder you work in. Where a tool can also install per-project, that is called out
+as the alternative rather than the default.
+
 Pick your AI below.
 
 ---
@@ -38,7 +42,8 @@ Start a new conversation and try: _"Add serendipity to my Inoh deck."_
 ### Claude Desktop (the Mac or Windows app)
 
 Claude Desktop uses a settings file to know which tools to connect to. You need to add a few
-lines to that file.
+lines to that file. There is one such file per installation, so this applies to Claude Desktop
+as a whole, not to any single project.
 
 **Step 1 - Find the file**
 
@@ -89,6 +94,9 @@ you use Inoh.
 You should see Inoh in the MCP Servers list with a green dot.
 
 ![Cursor Settings MCP panel showing Inoh connected with a green status dot](./img/cursor-mcp-settings.jpg)
+
+Adding it through Settings stores it in `~/.cursor/mcp.json`, which applies to every project.
+A `.cursor/mcp.json` inside a project folder would apply to that project only.
 
 ---
 
@@ -145,9 +153,18 @@ Inoh will appear in the Connectors list once connected.
 
 You will need GitHub Copilot and Agent mode enabled in VS Code.
 
-1. Inside your project folder, create a folder called `.vscode` if one does not already exist.
-2. Inside `.vscode`, create a new file called `mcp.json`.
-3. Paste the following into that file and save:
+Run this in your terminal. It adds Inoh to your VS Code **user profile**, so it is available in
+every folder you open:
+
+```bash
+code --add-mcp '{"name":"inoh","type":"http","url":"https://mcp.inoh.app/mcp"}'
+```
+
+Then open the Copilot Chat panel, switch to **Agent** mode, and Inoh will appear in the tools
+list.
+
+**Just one project instead?** Create `.vscode/mcp.json` in the project folder with the block
+below. A **Start** button appears above the `"inoh"` line; click it to connect.
 
 ```json
 {
@@ -160,16 +177,13 @@ You will need GitHub Copilot and Agent mode enabled in VS Code.
 }
 ```
 
-A **Start** button will appear just above the `"inoh"` line in the file. Click it to connect.
-
 ![VS Code showing .vscode/mcp.json with the Inoh entry and a Start CodeLens button](./img/vscode-mcp-json.jpg)
-
-Once started, open the Copilot Chat panel, switch to **Agent** mode, and Inoh will appear in
-the tools list.
 
 ---
 
 ## Zed
+
+`Cmd+,` opens your Zed **user** settings, so this applies to every project.
 
 1. Press `Cmd+,` to open Settings.
 2. Click **Assistant** then **Edit JSON**.
@@ -222,6 +236,9 @@ A browser sign-in tab will open the first time you use Inoh in a session.
 codex mcp add inoh --url https://mcp.inoh.app/mcp
 ```
 
+Codex has no scope flag: it always writes `~/.codex/config.toml`, so this is user-wide either
+way.
+
 Confirm it was added:
 
 ```bash
@@ -242,8 +259,11 @@ To verify Inoh is active inside a Codex session, run `/mcp`.
 ### Grok CLI
 
 ```bash
-grok mcp add --transport http inoh https://mcp.inoh.app/mcp
+grok mcp add --scope user --transport http inoh https://mcp.inoh.app/mcp
 ```
+
+`user` is already Grok's default, so the flag is belt and braces. `--scope project` would write
+`./.grok/config.toml` instead, shared with anyone working in that folder.
 
 Confirm it was added:
 
@@ -260,11 +280,11 @@ url = "https://mcp.inoh.app/mcp"
 
 Grok will open a browser sign-in tab on first use and store the token automatically.
 
-> **Scope:** these three CLIs disagree on where they write, so the defaults are worth knowing.
-> **Claude Code** defaults to `local` (the current folder only) — pass `--scope user`, as above,
-> to get Inoh everywhere. **Grok** already defaults to `user`; `--scope project` writes
-> `./.grok/config.toml` instead, shared with anyone working in that folder. **Codex** has no
-> scope flag and always writes `~/.codex/config.toml`, so it is user-wide either way.
+> **Scope:** these three CLIs disagree on where they write by default, which is worth knowing if
+> you ever drop the flags above. **Claude Code** defaults to `local`, the current folder only, so
+> `--scope user` is doing real work there — without it Inoh looks missing from every other
+> directory. **Grok** already defaults to `user`. **Codex** has no scope flag and is always
+> user-wide.
 
 ---
 
