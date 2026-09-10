@@ -86,9 +86,10 @@ register as `inoh` (see [installation.md](./installation.md)). Leave the scope a
 `local` here: the config line carries a bearer token, which does not belong in a committed
 `.mcp.json`, and you only need the dev server in this repo.
 
-`TOKEN_LIFETIME` in [`scripts/mint-local-token.ts`](./../scripts/mint-local-token.ts) is `1h`, so
-the header goes stale and you re-run both commands. Raise it if that gets tiresome; there is no
-OAuth flow locally, so the header is the only way in.
+`TOKEN_LIFETIME` in [`scripts/mint-local-token.ts`](./../scripts/mint-local-token.ts) is `14d`, so
+you re-mint roughly once a fortnight and then re-run both commands. There is no OAuth flow
+locally, so the header is the only way in. A long life is fine here only because the token is
+signed with your local Supabase secret and is useless against any other project.
 
 ---
 
