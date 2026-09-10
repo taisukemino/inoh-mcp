@@ -239,17 +239,30 @@ codex mcp add inoh --url https://mcp.inoh.app/mcp
 Codex has no scope flag: it always writes `~/.codex/config.toml`, so this is user-wide either
 way.
 
-Confirm it was added:
-
-```bash
-codex mcp list
-```
-
 Or manually add it to `~/.codex/config.toml`:
 
 ```toml
 [mcp_servers.inoh]
 url = "https://mcp.inoh.app/mcp"
+```
+
+After registering Inoh with either method, authenticate your account:
+
+```bash
+codex mcp login inoh
+```
+
+A browser window will open to complete sign-in. If automatic OAuth client registration fails,
+retry using Dynamic Client Registration:
+
+```bash
+codex mcp login inoh --oauth-client-registration dcr
+```
+
+Confirm it was added and authenticated:
+
+```bash
+codex mcp list
 ```
 
 To verify Inoh is active inside a Codex session, run `/mcp`.
