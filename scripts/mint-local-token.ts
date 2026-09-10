@@ -13,7 +13,9 @@ import { SignJWT } from 'jose';
 import { buildSupabaseIssuer } from '../src/auth/supabase-issuer.js';
 import { loadServerConfig } from '../src/config.js';
 
-const TOKEN_LIFETIME = '1h';
+// Reason: two weeks so a dev's MCP client keeps working across a sprint. Safe only because
+// this token is signed with the local Supabase secret and is useless against any other project.
+const TOKEN_LIFETIME = '14d';
 
 const { values } = parseArgs({
   options: {
