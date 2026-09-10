@@ -4,6 +4,7 @@ import { getUserAccessToken } from '../auth/index.js';
 import {
   CARD_REQUEST_COLUMNS,
   describeCustomCardStatus,
+  describeLowAllowance,
   fetchCustomCardQuota,
   toCustomCardStatus,
   type CardRequestRow,
@@ -85,15 +86,24 @@ export const registerCustomCardCreationStatusTool = (
         };
       }
 
-      const quota = await fetchCustomCardQuota(supabase);
       const summary =
         requestId === undefined
-          ? `${statuses.length} most recent custom card(s). ` +
-            `${quota.used} of ${quota.limit} used this month on the ${quota.plan} plan.`
+          ? `${statuses.length} most recent custom card(s).`
           : describeCustomCardStatus(firstStatus);
 
+      // Reason: read only to decide whether the allowance is worth raising. The
+      // tally is deliberately not reported on every check — see describeLowAllowance.
+      const lowAllowanceNote = describeLowAllowance(await fetchCustomCardQuota(supabase));
+
       return {
-        content: [{ type: 'text', text: `${summary}\n${JSON.stringify(statuses, null, 2)}` }],
+        content: [
+          {
+            type: 'text',
+            text:
+              `${summary}\n${JSON.stringify(statuses, null, 2)}` +
+              `${lowAllowanceNote === null ? '' : `\n\n${lowAllowanceNote}`}`,
+          },
+        ],
       };
     },
   );
