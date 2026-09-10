@@ -75,16 +75,21 @@ Add the minted token to your MCP client:
 
 ```bash
 # Claude Code
-claude mcp add --transport http inoh-local http://127.0.0.1:3333/mcp \
+claude mcp add --scope user --transport http inoh-local http://127.0.0.1:3333/mcp \
   --header "Authorization: Bearer $TOKEN"
 ```
 
 Or paste it as a Bearer token in any HTTP-capable MCP client.
 
-Name it `inoh-local`, not `inoh`, so it cannot be confused with the hosted server most people
-register as `inoh` (see [installation.md](./installation.md)). Leave the scope at its default
-`local` here: the config line carries a bearer token, which does not belong in a committed
-`.mcp.json`, and you only need the dev server in this repo.
+Name it `inoh-local`, not `inoh`, so it cannot be confused with the hosted server registered as
+`inoh` (see [installation.md](./installation.md)). The two can then coexist: `inoh` for
+production, `inoh-local` for whatever `pnpm dev` is serving.
+
+`--scope user` puts it in `~/.claude.json` and makes it reachable from any directory, which is
+what you want when you are testing tool calls from a scratch folder rather than from this repo.
+The bearer token stays out of version control either way — what you must not use here is
+`--scope project`, which writes a committed `.mcp.json`. The cost of user scope is that
+`inoh-local` shows up as failing everywhere whenever the dev server is not running.
 
 `TOKEN_LIFETIME` in [`scripts/mint-local-token.ts`](./../scripts/mint-local-token.ts) is `14d`, so
 you re-mint roughly once a fortnight and then re-run both commands. There is no OAuth flow
