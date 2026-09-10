@@ -1,55 +1,160 @@
-# Developing inoh-mcp
+# Inoh MCP - Developer & Self-Hosting Guide
 
-For using the server, see the [README](../README.md). This covers the parts you cannot infer from
-`package.json` or the source tree.
+> **You are in the right place if** you want to run the MCP server locally for development,
+> audit the source code, or self-host it. If you just want to use Inoh inside your AI client,
+> see **[installation.md](./installation.md)** instead.
 
-## Running against local Supabase
+---
+
+## Prerequisites
+
+- Node.js >= 22
+- pnpm >= 10
+- A running [Supabase](https://supabase.com) project (local or cloud) with the Inoh schema
+
+---
+
+## Quick start
 
 ```bash
+git clone https://github.com/inoh-app/inoh-mcp.git
+cd inoh-mcp
+pnpm install
 cp .env.example .env
-pnpm dev
 ```
 
-Point `SUPABASE_URL` at the local Supabase from `inoh-backend` (`http://127.0.0.1:54321`, not
-`localhost`, because it has to match the `iss` claim in Supabase's tokens exactly) and copy
-`PUBLISHABLE_KEY` and `JWT_SECRET` from `supabase status -o env`.
-
-There is no OAuth flow locally. Mint a token signed with the local JWT secret instead:
+Edit `.env` with your Supabase credentials (see [Environment variables](#environment-variables)),
+then:
 
 ```bash
-TOKEN=$(pnpm -s token:local --email you@example.com --user <existing-user-uuid>)
-
-claude mcp add --transport http inoh http://127.0.0.1:3333/mcp --header "Authorization: Bearer $TOKEN"
+pnpm dev       # watch mode, restarts on changes
+# or
+pnpm build && pnpm start   # production build
 ```
 
-Pass `--user` with a real `auth.users` id when the tool has to touch data. The default is a random
-uuid, which fails any insert with a foreign key to a user.
+The server listens on `http://127.0.0.1:3333/mcp` by default.
 
-## Things worth knowing before you change something
+---
 
-- **`src/tools/index.ts` is the security boundary.** A tool that is not registered there is
-  unreachable, which is the whole authorization model. Adding a file under `tools/` does nothing on
-  its own.
-- **The server never holds a service-role key.** Tools call Supabase with the caller's own token so
-  Row Level Security scopes every read and write. Keep it that way; a service-role client here would
-  make every RLS policy in `inoh-backend` advisory.
-- **Both Supabase signing schemes are accepted**: HS256 with the shared secret, and ES256/RS256 via
-  the project JWKS. Projects migrate between them, so do not assume either.
-- **`/mcp` validates `Origin`**, allowing requests with no `Origin` at all (every native client) plus
-  whatever is in `ALLOWED_ORIGINS`, default `https://inoh.app`. A browser based client needs adding
-  there or it gets a 403.
-- **Quota numbers are mirrored, not owned.** `CUSTOM_CARD_MONTHLY_LIMITS` only reports what the
-  `enforce_monthly_custom_card_limit` trigger in `inoh-backend` enforces. Change the trigger first.
+## Environment variables
+
+All variables are documented in [`.env.example`](./../.env.example). The key ones:
+
+| Variable                   | Required | Description                                                                                                                                                                                                           |
+| -------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PORT`                     | no       | Port to listen on (default `3333`)                                                                                                                                                                                    |
+| `HOST`                     | no       | Interface to bind (default `127.0.0.1`; use `0.0.0.0` in containers)                                                                                                                                                  |
+| `PUBLIC_URL`               | no       | Externally reachable base URL. Advertised to clients in OAuth metadata. Defaults to `http://HOST:PORT`.                                                                                                               |
+| `SUPABASE_URL`             | **yes**  | Your Supabase project URL. Must match the `iss` claim in JWTs exactly - use `http://127.0.0.1:54321`, not `localhost`, for local Supabase.                                                                            |
+| `SUPABASE_PUBLISHABLE_KEY` | **yes**  | Supabase publishable (anon) key. Sent as `apikey` on every database request; the caller's bearer token is forwarded alongside it so Row Level Security still applies.                                                 |
+| `SUPABASE_JWT_SECRET`      | **yes*** | Shared HS256 JWT secret. Required for projects signing tokens with HS256 (production today). Projects on asymmetric keys (ES256/RS256) are verified via JWKS and can leave this blank.                                |
+| `ALLOWED_ORIGINS`          | no       | Comma-separated list of browser origins allowed to call `/mcp`. Native clients (no `Origin` header) are always allowed. Defaults to `https://inoh.app`. Add your web client's origin here or it will receive a `403`. |
+
+Retrieve local values from your running Supabase instance:
+
+```bash
+supabase status -o env
+# PUBLISHABLE_KEY  -> SUPABASE_PUBLISHABLE_KEY
+# JWT_SECRET       -> SUPABASE_JWT_SECRET
+```
+
+---
+
+## Local authentication (no OAuth flow)
+
+There is no OAuth redirect loop when running locally. Mint a signed JWT instead:
+
+```bash
+TOKEN=$(pnpm -s token:local --email you@example.com --user <existing-auth-users-uuid>)
+```
+
+Pass `--user` with a real `auth.users` UUID; the default is a random UUID which fails any
+insert that has a foreign-key constraint to a user row.
+
+Add the minted token to your MCP client:
+
+```bash
+# Claude Code
+claude mcp add --transport http inoh http://127.0.0.1:3333/mcp \
+  --header "Authorization: Bearer $TOKEN"
+```
+
+Or paste it as a Bearer token in any HTTP-capable MCP client.
+
+---
+
+## Architecture notes
+
+### Security boundary
+
+`src/tools/index.ts` is the only place tools are registered. A file under `src/tools/` that
+is not imported there is unreachable, which is the entire authorisation model. Keep it that
+way - do not export tools implicitly.
+
+### No service-role key
+
+The server calls Supabase exclusively with the **caller's own bearer token**, forwarded as-is.
+This means every database read and write runs as that user and Row Level Security applies fully.
+A service-role client here would make every RLS policy in `inoh-backend` advisory. Do not add
+one.
+
+### Dual JWT verification
+
+Both Supabase signing schemes are accepted:
+
+- **HS256** - verified against `SUPABASE_JWT_SECRET`
+- **ES256 / RS256** - verified via the project JWKS endpoint
+
+Projects migrate between them, so do not assume either scheme.
+
+### Origin validation
+
+`/mcp` checks the `Origin` header on every request. Requests with **no** `Origin` header (every
+native client - Claude Desktop, the CLI, Cursor, Codex, etc.) are always allowed. A request
+that carries a browser `Origin` must match `ALLOWED_ORIGINS` or it receives a `403`. Add new
+web-based clients to `ALLOWED_ORIGINS` deliberately, not by widening the default.
+
+### Quota constants
+
+`CUSTOM_CARD_MONTHLY_LIMITS` in the source mirrors the limits enforced by the
+`enforce_monthly_custom_card_limit` trigger in `inoh-backend`. Changing the constant here
+changes only what the tool reports, not what the database allows. Update the trigger first.
+
+---
 
 ## Releasing
 
-Registry versions are immutable, so a metadata fix needs a new version. Bump it in three places
-that must agree: `package.json`, `SERVER_VERSION` in `src/server.ts`, and `server.json`.
+Registry versions are immutable. A metadata fix requires a new version. Bump in all three
+places that must agree:
+
+- `package.json` -> `version`
+- `src/server.ts` -> `SERVER_VERSION`
+- `server.json` -> `version`
+
+Then publish:
 
 ```bash
 mcp-publisher validate
 mcp-publisher publish
 ```
+
+---
+
+## Scripts reference
+
+| Command             | Description                           |
+| ------------------- | ------------------------------------- |
+| `pnpm dev`          | Watch mode - restarts on file changes |
+| `pnpm build`        | Compile TypeScript to `dist/`         |
+| `pnpm start`        | Run compiled output                   |
+| `pnpm token:local`  | Mint a local JWT for testing          |
+| `pnpm typecheck`    | Type-check without emitting           |
+| `pnpm lint`         | Run ESLint                            |
+| `pnpm lint:strict`  | ESLint with zero warnings allowed     |
+| `pnpm format`       | Format with Prettier                  |
+| `pnpm format:check` | Check formatting without writing      |
+
+---
 
 ## Roadmap
 

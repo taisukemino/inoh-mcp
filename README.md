@@ -1,7 +1,7 @@
 # inoh-mcp
 
-The remote [MCP](https://modelcontextprotocol.io) server for [Inoh](https://inoh.app), a vocabulary
-app built on spaced repetition. Connect it to Claude, ChatGPT, Cursor or any MCP-capable client and
+The remote [MCP](https://modelcontextprotocol.io) server for [Inoh](https://inoh.app) — the vocabulary
+app for the articulate. Connect it to Claude, ChatGPT, Cursor or any MCP-capable client and
 your AI can look words up in the Inoh dictionary and build flashcards for you, in your own account,
 while you are talking to it.
 
@@ -15,17 +15,11 @@ https://mcp.inoh.app/mcp
 ## Connecting
 
 You need a free [Inoh](https://inoh.app) account. Sign-in happens in your browser through Inoh's
-normal email flow, so your AI client never sees your password, and you can revoke it later.
+normal email flow, so your AI client never sees your password, and you can revoke access at any
+time from your Inoh account settings.
 
-Claude Code:
-
-```bash
-claude mcp add --transport http inoh https://mcp.inoh.app/mcp
-```
-
-Any other client: add `https://mcp.inoh.app/mcp` as a **Streamable HTTP** (remote) server. Clients
-register themselves automatically, so there is no API key to copy and no configuration file to edit.
-The first tool call opens a browser tab asking you to sign in and approve access.
+Step-by-step instructions for Claude, Cursor, ChatGPT, Gemini, VS Code and more are in
+[docs/installation.md](docs/installation.md).
 
 ## What you can ask for
 
@@ -47,7 +41,7 @@ Things people actually say:
 - "Make cards for every word I got wrong in that article."
 - "Is my _platitudinous_ card ready yet?"
 - "Take _banyan_ out of my deck, I know it now."
-- "My _moat_ card explains the wrong thing — redo it for the business sense."
+- "My _moat_ card explains the wrong thing - redo it for the business sense."
 - "That picture on my _runway_ card is useless. Make the card again."
 - "Delete the _moat_ card I made earlier."
 
@@ -102,7 +96,7 @@ Say which sense you meant and it teaches that instead. Say nothing and it simply
 the sense it already had, which is what you want when the meaning was right but the sentence was
 flat or the picture unhelpful.
 
-A redo costs one card from your monthly allowance, because it generates a new image — the expensive
+A redo costs one card from your monthly allowance, because it generates a new image - the expensive
 part of a card. It cannot change which word the card teaches: that is a different card, so delete
 this one and make that one.
 
@@ -138,8 +132,9 @@ Found something wrong? Open an issue on this repository.
 
 ## Development
 
-Local setup, architecture and the release process live in
-[docs/development.md](docs/development.md).
+Connecting to the server: [docs/installation.md](docs/installation.md).
+
+Local setup, architecture and the release process: [docs/development.md](docs/development.md).
 
 ## Licence
 
