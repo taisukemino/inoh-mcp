@@ -2,7 +2,7 @@
   "name": "inoh-mcp",
   "version": "0.0.1",
   "private": true,
-  "description": "Inoh MCP server: a controlled, AI-facing interface to Inoh vocabulary decks",
+  "description": "Inoh MCP server — the vocabulary app for the articulate.",
   "type": "module",
   "packageManager": "pnpm@10.18.3",
   "engines": {
