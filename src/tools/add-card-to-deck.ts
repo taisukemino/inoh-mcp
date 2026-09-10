@@ -12,7 +12,7 @@ import {
 import { findCardById, findCardsByWord, type DictionaryCard } from '../dictionary/index.js';
 import { createUserSupabaseClient, type SupabaseConnection } from '../supabase/index.js';
 import { buildWordPageUrl } from '../web-app-urls.js';
-import { formatCardChoices, requireOneCardSelector } from './card-selection.js';
+import { buildCardChoiceQuestion, requireOneCardSelector } from './card-selection.js';
 import { buildToolError } from './tool-result.js';
 
 const POSTGRES_UNIQUE_VIOLATION = '23505';
@@ -117,8 +117,7 @@ export const registerAddCardToDeckTool = (
 
         if (matches.length > 1) {
           return buildToolError(
-            `There are ${matches.length} cards for "${word}". Ask the user which meaning they ` +
-              `want, then call add_card_to_deck again with its cardId:\n${formatCardChoices(matches)}`,
+            `There are ${matches.length} cards for "${word}". ` + buildCardChoiceQuestion(matches),
           );
         }
 
@@ -175,13 +174,15 @@ export const registerAddCardToDeckTool = (
       }
 
       // Reason: the insert trigger clears orphaned_at, so an add is also how a
-      // custom card gets rescued from the deletion sweep. Worth saying out loud,
-      // because the caller may have removed it by mistake a moment ago.
+      // card the user deleted gets rescued from the deletion sweep. Worth saying
+      // out loud, because they may have asked for it back a minute after
+      // changing their mind.
       const rescueNote =
         card.orphaned_at === null
           ? ''
-          : ' It had been removed from the deck earlier and was about to be deleted for good; ' +
-            'adding it back has called that off, though its old review progress is gone.';
+          : ' It had been deleted and was about to be destroyed for good; adding it back has ' +
+            'called that off. The card is as it was — same definition, sentence, image and ' +
+            'audio — though its review progress starts over.';
 
       return {
         content: [

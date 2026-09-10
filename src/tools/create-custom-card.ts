@@ -63,7 +63,8 @@ const _describeExistingCards = (word: string, existingCards: DictionaryCard[]): 
     paragraphs.push(
       `The Inoh dictionary already has ${curated.length === 1 ? 'a card' : `${curated.length} cards`} ` +
         `for "${word}". A curated card is written and checked by Inoh, and adding one costs ` +
-        `nothing against the monthly allowance:\n${formatCardChoices(curated)}`,
+        'nothing against the monthly allowance. Offer them to the user by what they mean, not ' +
+        `by id:\n${formatCardChoices(curated)}`,
     );
   }
 
@@ -77,16 +78,17 @@ const _describeExistingCards = (word: string, existingCards: DictionaryCard[]): 
   if (ownCards.length > 0) {
     paragraphs.push(
       'If the card they already made is simply not good enough — wrong sense, dull sentence, ' +
-        'unhelpful image — update_custom_card remakes it in place and keeps its review ' +
-        'progress, which is almost always what they want instead of a second card for the ' +
-        'same word.',
+        'unhelpful image — remaking it in place keeps its review progress, which is almost ' +
+        'always what they want instead of a second card for the same word. ' +
+        `update_custom_card does that; to the user it is "I can remake your ${word} card".`,
     );
   }
 
   paragraphs.push(
-    'Add one of those with add_card_to_deck instead. If the user genuinely wants a separate ' +
-      'card because they mean a different sense of the word, call create_custom_card again with ' +
-      'createAnyway set to true and a `context` saying which sense.',
+    'Adding one of those is what to do instead, which add_card_to_deck does. If the user ' +
+      'genuinely wants a separate card because they mean a different sense of the word, call ' +
+      'create_custom_card again with createAnyway set to true and a `context` saying which ' +
+      'sense.',
   );
 
   return paragraphs.join('\n\n');
@@ -171,7 +173,13 @@ export const registerCreateCustomCardTool = (
       const supabase = createUserSupabaseClient(connection, getUserAccessToken(extra.authInfo));
 
       if (createAnyway !== true) {
-        const existingCards = await findCardsByWord(supabase, word);
+        // Reason: a card the user has just deleted is out of their deck and
+        // minutes from being destroyed, so it is not a duplicate worth
+        // protecting. Counting it would stop the very next thing they are
+        // likely to ask for -- the same word, made again.
+        const existingCards = (await findCardsByWord(supabase, word)).filter(
+          (card) => card.orphaned_at === null,
+        );
         if (existingCards.length > 0) {
           return buildToolError(_describeExistingCards(word, existingCards));
         }
