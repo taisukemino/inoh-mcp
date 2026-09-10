@@ -9,71 +9,41 @@ import {
   describeLowAllowance,
   fetchCustomCardQuota,
 } from '../custom-cards/index.js';
-import { findCardById, findOwnCardsByWord, type DictionaryCard } from '../dictionary/index.js';
 import { createUserSupabaseClient, type SupabaseConnection } from '../supabase/index.js';
-import { formatCardChoices, requireOneCardSelector } from './card-selection.js';
+import { buildCardChoiceQuestion, requireOneCardSelector } from './card-selection.js';
+import { lookupOwnCard, type OwnCardLookup } from './own-card-lookup.js';
 import { buildToolError } from './tool-result.js';
 
 const MAX_CONTEXT_LENGTH = 300;
 
 /**
- * Find the one custom card of the caller's this redo is for.
+ * Say why no card could be redone, and what to do about it.
  *
- * Reason: a redo has to know the card's word, not just its id — the request
- * carries the word to the generator, and the database refuses a draft written
- * for a different one. So both routes read the row rather than trusting the
- * argument.
- *
- * @param supabase - Client acting as the signed-in user
- * @param word - The word on the card, when that is how it was named
- * @param cardId - The card's id, when that is how it was named
- * @returns The card, or the reason it could not be settled on one
+ * @param lookup - A lookup result other than `found`
+ * @returns The explanation to hand back to the caller
  */
-const _resolveOwnCard = async (
-  supabase: SupabaseClient,
-  word: string | undefined,
-  cardId: string | undefined,
-): Promise<{ card: DictionaryCard } | { problem: string }> => {
-  if (cardId !== undefined) {
-    const card = await findCardById(supabase, cardId);
-
-    if (card === null) {
-      return { problem: `There is no card with id ${cardId} on this account.` };
-    }
-
-    if (card.owner_user_id === null) {
-      return {
-        problem:
-          `"${card.word}" is a card from the shared Inoh dictionary, which belongs to ` +
-          'everyone, so it cannot be redone. Only cards the user created with ' +
-          'create_custom_card can be.',
-      };
-    }
-
-    return { card };
-  }
-
-  const matches = await findOwnCardsByWord(supabase, word ?? '');
-
-  if (matches.length === 0) {
-    return {
-      problem:
-        `The user has no custom card for "${word}". Only cards they created with ` +
+const _describeUnredoableCard = (lookup: Exclude<OwnCardLookup, { kind: 'found' }>): string => {
+  switch (lookup.kind) {
+    case 'noCardWithId':
+      return `There is no card with id ${lookup.cardId} on this account.`;
+    case 'curatedCard':
+      return (
+        `"${lookup.card.word}" is a card from the shared Inoh dictionary, which belongs to ` +
+        'everyone, so it cannot be redone. Only cards the user created with create_custom_card ' +
+        'can be.'
+      );
+    case 'noCardForWord':
+      return (
+        `The user has no custom card for "${lookup.word}". Only cards they created with ` +
         'create_custom_card can be redone. If Inoh has a curated card for the word, ' +
-        'add_card_to_deck is what they want instead.',
-    };
+        'add_card_to_deck is what they want instead.'
+      );
+    case 'severalCardsForWord':
+      return (
+        `The user has ${lookup.cards.length} custom cards for "${lookup.word}". ` +
+        buildCardChoiceQuestion(lookup.cards)
+      );
   }
-
-  if (matches.length > 1) {
-    return {
-      problem:
-        `The user has ${matches.length} custom cards for "${word}". Ask which one, then ` +
-        `call update_custom_card again with its cardId:\n${formatCardChoices(matches)}`,
-    };
-  }
-
-  const [card] = matches;
-  return card === undefined ? { problem: 'Could not work out which card to redo.' } : { card };
 };
 
 /**
@@ -167,11 +137,22 @@ export const registerUpdateCustomCardTool = (
       const user = getAuthenticatedUser(extra.authInfo);
       const supabase = createUserSupabaseClient(connection, getUserAccessToken(extra.authInfo));
 
-      const resolved = await _resolveOwnCard(supabase, word, cardId);
-      if ('problem' in resolved) {
-        return buildToolError(resolved.problem);
+      const lookup = await lookupOwnCard(supabase, word, cardId);
+      if (lookup.kind !== 'found') {
+        return buildToolError(_describeUnredoableCard(lookup));
       }
-      const { card } = resolved;
+      const { card } = lookup;
+
+      // Reason: a card its owner has deleted is out of every deck and minutes
+      // from being destroyed, so redoing it would spend a card of the monthly
+      // allowance on a target apply_custom_card_update may well find gone.
+      if (card.orphaned_at !== null) {
+        return buildToolError(
+          `"${card.word}" was deleted and is about to be destroyed for good, so it cannot be ` +
+            'remade. add_card_to_deck brings it back and calls that off, and it can be redone ' +
+            'after that; or create_custom_card makes a fresh card for the word.',
+        );
+      }
 
       const sense =
         context ?? (await _readLastContext(supabase, card.id)) ?? buildDefaultContext(card.word);

@@ -6,7 +6,7 @@ import { MAX_WORD_LENGTH } from '../constants.js';
 import { fetchDecks } from '../decks/index.js';
 import { findCardById, findCardsByWord, type DictionaryCard } from '../dictionary/index.js';
 import { createUserSupabaseClient, type SupabaseConnection } from '../supabase/index.js';
-import { formatCardChoices, requireOneCardSelector } from './card-selection.js';
+import { buildCardChoiceQuestion, requireOneCardSelector } from './card-selection.js';
 import { buildToolError } from './tool-result.js';
 
 /** A card that is both in the dictionary and in one of the user's decks. */
@@ -66,7 +66,8 @@ export const registerRemoveCardFromDeckTool = (
         "Takes a card out of the signed-in user's deck so it stops coming up in reviews. The " +
         'card stays in the shared Inoh dictionary for everyone else. Identify it by `word` or ' +
         'by `cardId`. Their review progress for the card is lost and adding it back later ' +
-        'starts it over, so confirm with the user first. This only works on cards from the ' +
+        'starts it over, so confirm with the user first — in those terms, about the card and ' +
+        'the progress, never by naming a tool. This only works on cards from the ' +
         'Inoh dictionary: a card the user created themselves cannot be parked outside a deck, ' +
         'so removing one means deleting it, which delete_custom_card does.',
       inputSchema: {
@@ -113,9 +114,8 @@ export const registerRemoveCardFromDeckTool = (
 
       if (cardsInDecks.length > 1) {
         return buildToolError(
-          `The user has ${cardsInDecks.length} cards for "${word ?? cardsInDecks[0]?.word}". Ask ` +
-            'which one, then call remove_card_from_deck again with its cardId:\n' +
-            formatCardChoices(cardsInDecks),
+          `The user has ${cardsInDecks.length} cards for "${word ?? cardsInDecks[0]?.word}". ` +
+            buildCardChoiceQuestion(cardsInDecks),
         );
       }
 
@@ -130,8 +130,10 @@ export const registerRemoveCardFromDeckTool = (
       if (card.owner_user_id !== null) {
         return buildToolError(
           `"${card.word}" is a card the user created, not one from the Inoh dictionary. Cards ` +
-            'they made cannot sit outside a deck, so removing it would delete it along with its ' +
-            'image and audio. Use delete_custom_card if that is what they want.',
+            'they made cannot sit outside a deck, so taking it out means deleting it, which ' +
+            'delete_custom_card does — and undoes for a few minutes afterwards, so there is no ' +
+            'need to warn the user off first. To them this is still just taking the ' +
+            `${card.word} card out of their deck; the difference is Inoh's, not theirs.`,
         );
       }
 

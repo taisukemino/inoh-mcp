@@ -31,7 +31,7 @@ Step-by-step instructions for Claude, Cursor, ChatGPT, Gemini, VS Code and more 
 | `create_custom_card`          | Build a complete flashcard for a word and file it in your deck |
 | `update_custom_card`          | Remake a card you created, keeping its review progress         |
 | `custom_card_creation_status` | Check whether a card you asked for is ready                    |
-| `delete_custom_card`          | Permanently delete a card you created, including its media     |
+| `delete_custom_card`          | Delete a card you created, undoable for about ten minutes      |
 | `check_account`               | Show which Inoh account you are signed in as                   |
 
 Things people actually say:
@@ -44,6 +44,7 @@ Things people actually say:
 - "My _moat_ card explains the wrong thing - redo it for the business sense."
 - "That picture on my _runway_ card is useless. Make the card again."
 - "Delete the _moat_ card I made earlier."
+- "Actually, put the _moat_ card back."
 
 Ask for a word and the AI looks it up first, adding the curated card when Inoh already has one and
 generating a fresh one only when it does not.
@@ -57,7 +58,12 @@ for everyone, and you can add it back whenever you like, though you start its re
 
 A **card you made** cannot sit outside a deck, because nobody else has a copy to keep it alive.
 Removing one means deleting it, so `remove_card_from_deck` declines and points at
-`delete_custom_card` instead. Deleting is permanent and takes the image and audio with it.
+`delete_custom_card` instead.
+
+Deleting takes the card out of your deck straight away, and Inoh destroys it and its image and
+audio about ten minutes later. Until then you can simply ask for it back: the card returns exactly
+as it was, apart from its review progress, which starts over. So nobody has to argue you out of
+deleting a card - say it goes, and change your mind afterwards if you like.
 
 ## Cards you create
 
