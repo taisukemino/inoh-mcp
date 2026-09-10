@@ -67,10 +67,10 @@ const LOW_ALLOWANCE_THRESHOLD = 5;
  * A sentence about the allowance, or null when it is not worth saying.
  *
  * Reason: a tool result is the prompt for whatever the AI client says next, so
- * anything returned here gets repeated to the user. Reporting the tally on
- * every card is how "3 of 300" ends up in a message about one card. Callers
- * that the user has explicitly pointed at their allowance
- * (custom_card_creation_status) report it regardless; this is for the rest.
+ * anything returned here gets repeated to the user, and once "6 of 300" is in
+ * the transcript the client keeps repeating it in later turns. So no tool
+ * quotes the tally unprompted — every caller that touches the allowance goes
+ * through here, and it stays quiet until the next card may actually be refused.
  *
  * @param quota - The caller's current allowance
  * @returns A line to append to a success message, or null to say nothing
