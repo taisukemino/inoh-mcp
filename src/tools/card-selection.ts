@@ -37,3 +37,17 @@ export const requireOneCardSelector = (
  */
 export const formatCardChoices = (choices: CardChoice[]): string =>
   choices.map((choice) => `- cardId ${choice.id}: ${choice.definition}`).join('\n');
+
+/**
+ * Ask the caller to settle which card was meant before it tries again.
+ *
+ * Reason: the ids and the tool name are the caller's business. The user picks
+ * a card by what it means, so the question they hear should be about
+ * definitions while the retry carries the id.
+ *
+ * @param choices - The cards that matched
+ * @returns An instruction plus one line per card, ready to return to the caller
+ */
+export const buildCardChoiceQuestion = (choices: CardChoice[]): string =>
+  'Ask the user which meaning they mean, quoting the definitions rather than the ids, then ' +
+  `call this tool again with that cardId:\n${formatCardChoices(choices)}`;

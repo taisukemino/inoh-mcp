@@ -135,6 +135,17 @@ native client - Claude Desktop, the CLI, Cursor, Codex, etc.) are always allowed
 that carries a browser `Origin` must match `ALLOWED_ORIGINS` or it receives a `403`. Add new
 web-based clients to `ALLOWED_ORIGINS` deliberately, not by widening the default.
 
+### Tool names stay out of sight
+
+`SERVER_INSTRUCTIONS` in `src/server.ts` is sent to every client in the initialize handshake, and
+it says one thing: the user never hears a tool name. A person who is told "use `update_custom_card`"
+has to translate that back into something they could have said, so tool descriptions and results
+name a card and a word - "I can remake the _runway_ card" - and cardIds are never read out either.
+
+Tool names still appear inside descriptions and results, because that is how a tool tells the
+client which sibling to call next. The rule is about what reaches the user, not about the strings
+themselves: keep the cross-reference, phrase the advice around it in words the user could say back.
+
 ### Quota constants
 
 `CUSTOM_CARD_MONTHLY_LIMITS` in the source mirrors the limits enforced by the
