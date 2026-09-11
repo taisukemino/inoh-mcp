@@ -5,8 +5,8 @@ import {
   buildDefaultContext,
   describeCardRequestInsertError,
   describeLowAllowance,
-  fetchCustomCardQuota,
-} from '../custom-cards/index.js';
+  fetchPrivateCardQuota,
+} from '../private-cards/index.js';
 import { MAX_WORD_LENGTH, WORD_CHARACTER_REGEX } from '../constants.js';
 import { describeMissingDeck, fetchDecks, findDeckByName } from '../decks/index.js';
 import { findCardsByWord, type DictionaryCard } from '../dictionary/index.js';
@@ -80,14 +80,14 @@ const _describeExistingCards = (word: string, existingCards: DictionaryCard[]): 
       'If the card they already made is simply not good enough — wrong sense, dull sentence, ' +
         'unhelpful image — remaking it in place keeps its review progress, which is almost ' +
         'always what they want instead of a second card for the same word. ' +
-        `update_custom_card does that; to the user it is "I can remake your ${word} card".`,
+        `update_private_card does that; to the user it is "I can remake your ${word} card".`,
     );
   }
 
   paragraphs.push(
     'Adding one of those is what to do instead, which add_card_to_deck does. If the user ' +
       'genuinely wants a separate card because they mean a different sense of the word, call ' +
-      'create_custom_card again with createAnyway set to true and a `context` saying which ' +
+      'create_private_card again with createAnyway set to true and a `context` saying which ' +
       'sense.',
   );
 
@@ -95,31 +95,31 @@ const _describeExistingCards = (word: string, existingCards: DictionaryCard[]): 
 };
 
 /**
- * Registers a `create_custom_card` tool that generates a full Inoh card for the
+ * Registers a `create_private_card` tool that generates a full Inoh card for the
  * signed-in user and adds it to their deck.
  *
  * @param server - The MCP server to register the tool on
  * @param connection - Supabase project URL and publishable key
  */
-export const registerCreateCustomCardTool = (
+export const registerCreatePrivateCardTool = (
   server: McpServer,
   connection: SupabaseConnection,
 ): void => {
   server.registerTool(
-    'create_custom_card',
+    'create_private_card',
     {
-      title: 'Create a custom card',
+      title: 'Create a private card',
       description:
         'Creates a full Inoh flashcard for a word or phrase and adds it to the signed-in ' +
         "user's deck. The card goes into their private dictionary, which only they can see, " +
         'never into the public Inoh dictionary. Inoh generates everything needed to quiz on it — definition, ' +
         'example sentence, pronunciation audio, image, phonetic and quiz distractors — so ' +
         'this takes about a minute and finishes in the background. Call ' +
-        'custom_card_creation_status to check on it. If the Inoh dictionary already has the ' +
+        'check_private_card_status to check on it. If the Inoh dictionary already has the ' +
         'word — or the user already made one for it — this stops and points at that card ' +
         'rather than making a duplicate, since a public dictionary card is better and costs no ' +
         'allowance. Each plan allows a set ' +
-        'number of custom cards per month. Inoh only generates English cards, so `word` has ' +
+        'number of private cards per month. Inoh only generates English cards, so `word` has ' +
         'to be English — but the user can ask in any language, and `context` can be written ' +
         'in whatever language they used.',
       inputSchema: {
@@ -213,7 +213,7 @@ export const registerCreateCustomCardTool = (
         const explanation = describeCardRequestInsertError(
           error,
           `A card for "${word}" with that same context is already being made. ` +
-            'Call custom_card_creation_status to see how it is going.',
+            'Call check_private_card_status to see how it is going.',
         );
         if (explanation !== null) {
           return buildToolError(explanation);
@@ -223,7 +223,7 @@ export const registerCreateCustomCardTool = (
 
       // Reason: read only to decide whether the allowance is worth raising. The
       // tally is deliberately not reported on every card — see describeLowAllowance.
-      const lowAllowanceNote = describeLowAllowance(await fetchCustomCardQuota(supabase));
+      const lowAllowanceNote = describeLowAllowance(await fetchPrivateCardQuota(supabase));
 
       return {
         content: [
@@ -242,7 +242,7 @@ export const registerCreateCustomCardTool = (
                 null,
                 2,
               )}\n\n` +
-              'Call custom_card_creation_status with this requestId to check whether it is ready.' +
+              'Call check_private_card_status with this requestId to check whether it is ready.' +
               `${lowAllowanceNote === null ? '' : `\n\n${lowAllowanceNote}`}`,
           },
         ],

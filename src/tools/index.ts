@@ -2,12 +2,12 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { SupabaseConnection } from '../supabase/index.js';
 import { registerAddCardToDeckTool } from './add-card-to-deck.js';
 import { registerCheckAccountTool } from './check-account.js';
-import { registerCustomCardCreationStatusTool } from './custom-card-creation-status.js';
-import { registerCreateCustomCardTool } from './create-custom-card.js';
-import { registerDeleteCustomCardTool } from './delete-custom-card.js';
+import { registerCheckPrivateCardStatusTool } from './check-private-card-status.js';
+import { registerCreatePrivateCardTool } from './create-private-card.js';
+import { registerDeletePrivateCardTool } from './delete-private-card.js';
 import { registerRemoveCardFromDeckTool } from './remove-card-from-deck.js';
 import { registerSearchDictionaryTool } from './search-dictionary.js';
-import { registerUpdateCustomCardTool } from './update-custom-card.js';
+import { registerUpdatePrivateCardTool } from './update-private-card.js';
 
 /**
  * Registers every tool the Inoh MCP server exposes.
@@ -23,8 +23,8 @@ export const registerAllTools = (server: McpServer, connection: SupabaseConnecti
   registerSearchDictionaryTool(server, connection);
   registerAddCardToDeckTool(server, connection);
   registerRemoveCardFromDeckTool(server, connection);
-  registerCreateCustomCardTool(server, connection);
-  registerUpdateCustomCardTool(server, connection);
-  registerCustomCardCreationStatusTool(server, connection);
-  registerDeleteCustomCardTool(server, connection);
+  registerCreatePrivateCardTool(server, connection);
+  registerUpdatePrivateCardTool(server, connection);
+  registerCheckPrivateCardStatusTool(server, connection);
+  registerDeletePrivateCardTool(server, connection);
 };

@@ -62,10 +62,10 @@ export const registerAddCardToDeckTool = (
       description:
         "Adds a card that already exists to one of the signed-in user's decks, so it comes " +
         'up in their reviews. Identify it by `cardId` from search_dictionary, or by `word`. ' +
-        'Use this for words already in the public Inoh dictionary; use create_custom_card only ' +
+        'Use this for words already in the public Inoh dictionary; use create_private_card only ' +
         'when the dictionary does not have the word, since a public dictionary card is better ' +
         "than a generated duplicate. It also re-adds a card from the user's own private " +
-        'dictionary that they had taken out of their deck. Adding costs nothing against the monthly custom card allowance, though ' +
+        'dictionary that they had taken out of their deck. Adding costs nothing against the monthly private card allowance, though ' +
         "each plan caps how many cards a deck can hold in total. A card's review progress " +
         'starts fresh.',
       inputSchema: {
@@ -112,7 +112,7 @@ export const registerAddCardToDeckTool = (
         if (matches.length === 0) {
           return buildToolError(
             `"${word}" is not in the Inoh dictionary and the user has no card for it. ` +
-              'Use create_custom_card to have one made.',
+              'Use create_private_card to have one made.',
           );
         }
 

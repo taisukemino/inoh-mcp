@@ -26,7 +26,7 @@ const _readMessageAfterPrefix = (message: string, prefix: string): string =>
 /**
  * Turn a failed `card_requests` insert into something worth saying.
  *
- * Shared by create_custom_card and update_custom_card: both insert the same
+ * Shared by create_private_card and update_private_card: both insert the same
  * row, so both meet the same triggers — the monthly quota, the daily ceiling,
  * the client-write lockdown, and two unique indexes covering work already in
  * flight.

@@ -1,21 +1,21 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 /**
- * Custom cards a plan may create per calendar month.
+ * Private cards a plan may create per calendar month.
  *
  * Reason: mirrors enforce_monthly_custom_card_limit in inoh-backend, which is
  * the authoritative gate — these numbers exist only so a tool can tell the user
  * where they stand before they hit it. Keep the two in sync.
  */
-export const CUSTOM_CARD_MONTHLY_LIMITS = {
+export const PRIVATE_CARD_MONTHLY_LIMITS = {
   free: 50,
   plus: 300,
   pro: 1000,
 } as const;
 
-export type SubscriptionPlan = keyof typeof CUSTOM_CARD_MONTHLY_LIMITS;
+export type SubscriptionPlan = keyof typeof PRIVATE_CARD_MONTHLY_LIMITS;
 
-export interface CustomCardQuota {
+export interface PrivateCardQuota {
   plan: SubscriptionPlan;
   used: number;
   limit: number;
@@ -75,19 +75,21 @@ const LOW_ALLOWANCE_THRESHOLD = 5;
  * @param quota - The caller's current allowance
  * @returns A line to append to a success message, or null to say nothing
  */
-export const describeLowAllowance = (quota: CustomCardQuota): string | null =>
+export const describeLowAllowance = (quota: PrivateCardQuota): string | null =>
   quota.remaining > LOW_ALLOWANCE_THRESHOLD
     ? null
-    : `Worth mentioning: only ${quota.remaining} custom card${quota.remaining === 1 ? '' : 's'} ` +
+    : `Worth mentioning: only ${quota.remaining} private card${quota.remaining === 1 ? '' : 's'} ` +
       `left this month on the ${quota.plan} plan. The quota resets on the 1st.`;
 
 /**
- * How many custom cards the signed-in user has left this month.
+ * How many private cards the signed-in user has left this month.
  *
  * @param supabase - Client acting as the signed-in user
  * @returns Their plan, what they have used, and what is left
  */
-export const fetchCustomCardQuota = async (supabase: SupabaseClient): Promise<CustomCardQuota> => {
+export const fetchPrivateCardQuota = async (
+  supabase: SupabaseClient,
+): Promise<PrivateCardQuota> => {
   const plan = await _readEntitledPlan(supabase);
 
   // Reason: counts the same rows the trigger counts — custom requests made this
@@ -100,7 +102,7 @@ export const fetchCustomCardQuota = async (supabase: SupabaseClient): Promise<Cu
     .gte('created_at', _startOfCurrentMonth());
 
   const used = count ?? 0;
-  const limit = CUSTOM_CARD_MONTHLY_LIMITS[plan];
+  const limit = PRIVATE_CARD_MONTHLY_LIMITS[plan];
 
   return { plan, used, limit, remaining: Math.max(limit - used, 0) };
 };

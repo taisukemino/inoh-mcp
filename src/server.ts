@@ -10,7 +10,7 @@ const SERVER_VERSION = '0.0.1';
 /**
  * What every client model is told once, before it sees a single tool.
  *
- * Reason: tool names are plumbing. A user who hears "update_custom_card" has
+ * Reason: tool names are plumbing. A user who hears "update_private_card" has
  * to translate it back into something they could have said, so the phrasing
  * rule belongs here rather than repeated in every tool description.
  */
