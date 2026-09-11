@@ -28,15 +28,3 @@ export const MAX_WORD_LENGTH = 50;
  * apostrophes are allowed for terms like "30 Under 30", "don't" and "co-op".
  */
 export const WORD_CHARACTER_REGEX = /^[a-zA-Z0-9\s'-]+$/;
-
-/**
- * How long a deleted custom card can still be brought back.
- *
- * Reason: deleting a card takes it out of the user's deck, and the backend's
- * sweep-orphaned-custom-cards job destroys the row and its media once the card
- * has been out of every deck for GRACE_MINUTES (10). That job runs every five
- * minutes, so the true window is 10-15 minutes; the tools quote the lower
- * bound, which is the only part a user can count on. Keep in sync with
- * GRACE_MINUTES in inoh-backend's sweep-orphaned-custom-cards.
- */
-export const CUSTOM_CARD_RESCUE_MINUTES = 10;
