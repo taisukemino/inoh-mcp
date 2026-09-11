@@ -131,7 +131,7 @@ cd ../inoh-backend && supabase migration up --local
 
 ### One tool a minted token cannot exercise
 
-`delete_private_card` calls the `delete-custom-card` edge function, which verifies the caller with
+`delete_private_card` calls the `delete-private-card` edge function, which verifies the caller with
 `auth.getUser`. That checks the token's `session_id` against `auth.sessions`, and a minted token
 carries one that was never issued, so the function answers `Invalid or expired user token`.
 
