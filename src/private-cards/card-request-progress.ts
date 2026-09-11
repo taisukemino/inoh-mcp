@@ -3,7 +3,7 @@ import { buildWordPageUrl } from '../web-app-urls.js';
 /** The six database statuses collapsed into what a caller actually needs. */
 export type PrivateCardProgress = 'generating' | 'ready' | 'failed' | 'deleted';
 
-/** Columns every custom-card tool reads back from `card_requests`. */
+/** Columns every private-card tool reads back from `card_requests`. */
 export const CARD_REQUEST_COLUMNS =
   'id, word, context, status, error_reason, error_detail, dictionary_id, target_dictionary_id, created_at';
 
