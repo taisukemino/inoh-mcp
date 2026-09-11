@@ -15,7 +15,7 @@ export const buildDefaultContext = (word: string): string => `the most common me
 const POSTGRES_UNIQUE_VIOLATION = '23505';
 
 /** Prefixes the database uses for limits and refusals, so each gets its own explanation. */
-const QUOTA_ERROR_PREFIX = 'CUSTOM_CARD_LIMIT:';
+const QUOTA_ERROR_PREFIX = 'PRIVATE_CARD_LIMIT:';
 const DAILY_CEILING_ERROR_PREFIX = 'DAILY_CARD_REQUEST_LIMIT:';
 const CLIENT_WRITE_ERROR_PREFIX = 'CARD_REQUEST_CLIENT_WRITE:';
 
