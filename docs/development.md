@@ -87,20 +87,6 @@ connect. `&&` means a failed mint writes no config at all.
 
 Or paste it as a Bearer token in any HTTP-capable MCP client.
 
-**One tool needs a real sign-in instead.** `delete_custom_card` calls the
-`delete-custom-card` edge function, which verifies the caller with
-`auth.getUser` — and that checks the token's session against `auth.sessions`. A
-minted token carries a `session_id` that was never issued, so the function
-answers `Invalid or expired user token`. Everything else works on a minted
-token, because Row Level Security reads the JWT's claims and never looks the
-session up. To exercise deletion locally, sign the user in for a genuine token:
-
-```bash
-TOKEN=$(curl -s -X POST "$SUPABASE_URL/auth/v1/token?grant_type=password" \
-  -H "apikey: $SUPABASE_PUBLISHABLE_KEY" -H 'Content-Type: application/json' \
-  -d '{"email":"you@example.com","password":"..."}' | jq -r .access_token)
-```
-
 Name it `inoh-local`, not `inoh`, so it cannot be confused with the hosted server registered as
 `inoh` (see [installation.md](./installation.md)). The two can then coexist: `inoh` for
 production, `inoh-local` for whatever `pnpm dev` is serving.
@@ -115,6 +101,48 @@ The bearer token stays out of version control either way — what you must not u
 you re-mint roughly once a fortnight and then re-run both commands. There is no OAuth flow
 locally, so the header is the only way in. A long life is fine here only because the token is
 signed with your local Supabase secret and is useless against any other project.
+
+---
+
+## Updating the local server
+
+`pnpm dev` runs `node --watch`, so **there is no update step**: edit or `git pull`, and the server
+restarts itself. `pnpm build && pnpm start` does not — it serves `dist/`, so rebuild after a pull.
+
+Claude Code connects to an MCP server once, at session start. A restarted server therefore needs a
+new session; until then `inoh-local` reports as failing, which is also what you see when the dev
+server simply is not running.
+
+To check which code is actually being served, ask the server rather than guessing:
+
+```bash
+claude mcp list          # is inoh-local connected?
+```
+
+Then call a tool and read its description — `delete_custom_card` saying deletion is permanent means
+you are on PRI-20766 or later.
+
+After a schema change in `inoh-backend`, the local database has to move with it, or every tool
+fails on a column that is not there yet:
+
+```bash
+cd ../inoh-backend && supabase migration up --local
+```
+
+### One tool a minted token cannot exercise
+
+`delete_custom_card` calls the `delete-custom-card` edge function, which verifies the caller with
+`auth.getUser`. That checks the token's `session_id` against `auth.sessions`, and a minted token
+carries one that was never issued, so the function answers `Invalid or expired user token`.
+
+Everything else works on a minted token, because Row Level Security reads the JWT's claims and
+never looks the session up. To exercise deletion, sign a real user in for a genuine token:
+
+```bash
+TOKEN=$(curl -s -X POST "$SUPABASE_URL/auth/v1/token?grant_type=password" \
+  -H "apikey: $SUPABASE_PUBLISHABLE_KEY" -H 'Content-Type: application/json' \
+  -d '{"email":"you@example.com","password":"..."}' | jq -r .access_token)
+```
 
 ---
 
