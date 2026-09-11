@@ -184,7 +184,7 @@ export const registerCreatePrivateCardTool = (
         }
       }
 
-      // Left null when no deck is named: publish_custom_card resolves the
+      // Left null when no deck is named: publish_private_card resolves the
       // default server-side, which is one fewer round trip than doing it here.
       let deckId: string | null = null;
       if (deckName !== undefined) {
@@ -202,7 +202,7 @@ export const registerCreatePrivateCardTool = (
           user_id: user.id,
           word,
           context: context ?? buildDefaultContext(word),
-          destination: 'custom',
+          destination: 'private',
           source: 'mcp',
           deck_id: deckId,
         })

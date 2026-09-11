@@ -3,7 +3,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 /**
  * Private cards a plan may create per calendar month.
  *
- * Reason: mirrors enforce_monthly_custom_card_limit in inoh-backend, which is
+ * Reason: mirrors enforce_monthly_private_card_limit in inoh-backend, which is
  * the authoritative gate — these numbers exist only so a tool can tell the user
  * where they stand before they hit it. Keep the two in sync.
  */
@@ -97,7 +97,7 @@ export const fetchPrivateCardQuota = async (
   const { count } = await supabase
     .from('card_requests')
     .select('id', { count: 'exact', head: true })
-    .eq('destination', 'custom')
+    .eq('destination', 'private')
     .not('status', 'in', '("failed","rejected")')
     .gte('created_at', _startOfCurrentMonth());
 

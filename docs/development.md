@@ -191,7 +191,7 @@ themselves: keep the cross-reference, phrase the advice around it in words the u
 ### Quota constants
 
 `PRIVATE_CARD_MONTHLY_LIMITS` in the source mirrors the limits enforced by the
-`enforce_monthly_custom_card_limit` trigger in `inoh-backend`. Changing the constant here
+`enforce_monthly_private_card_limit` trigger in `inoh-backend`. Changing the constant here
 changes only what the tool reports, not what the database allows. Update the trigger first.
 
 ---
