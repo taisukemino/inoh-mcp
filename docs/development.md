@@ -119,7 +119,7 @@ To check which code is actually being served, ask the server rather than guessin
 claude mcp list          # is inoh-local connected?
 ```
 
-Then call a tool and read its description — `delete_custom_card` saying deletion is permanent means
+Then call a tool and read its description — `delete_private_card` saying deletion is permanent means
 you are on PRI-20766 or later.
 
 After a schema change in `inoh-backend`, the local database has to move with it, or every tool
@@ -131,7 +131,7 @@ cd ../inoh-backend && supabase migration up --local
 
 ### One tool a minted token cannot exercise
 
-`delete_custom_card` calls the `delete-custom-card` edge function, which verifies the caller with
+`delete_private_card` calls the `delete-custom-card` edge function, which verifies the caller with
 `auth.getUser`. That checks the token's `session_id` against `auth.sessions`, and a minted token
 carries one that was never issued, so the function answers `Invalid or expired user token`.
 
@@ -180,7 +180,7 @@ web-based clients to `ALLOWED_ORIGINS` deliberately, not by widening the default
 ### Tool names stay out of sight
 
 `SERVER_INSTRUCTIONS` in `src/server.ts` is sent to every client in the initialize handshake, and
-it says one thing: the user never hears a tool name. A person who is told "use `update_custom_card`"
+it says one thing: the user never hears a tool name. A person who is told "use `update_private_card`"
 has to translate that back into something they could have said, so tool descriptions and results
 name a card and a word - "I can remake the _runway_ card" - and cardIds are never read out either.
 

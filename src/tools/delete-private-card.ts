@@ -7,10 +7,10 @@ import { lookupOwnCard, type OwnCardLookup } from './own-card-lookup.js';
 import { buildToolError } from './tool-result.js';
 
 /** The edge function that owns deletion: the row, its deck rows, and its media. */
-const DELETE_CUSTOM_CARD_FUNCTION = 'delete-custom-card';
+const DELETE_PRIVATE_CARD_FUNCTION = 'delete-custom-card';
 
 /** What the function answers with when it refuses or fails. */
-interface DeleteCustomCardResponse {
+interface DeletePrivateCardResponse {
   error?: string;
 }
 
@@ -35,7 +35,7 @@ const _readRefusal = async (error: unknown): Promise<string | null> => {
   if (typeof context?.json !== 'function') return null;
 
   try {
-    const body = (await context.json()) as DeleteCustomCardResponse;
+    const body = (await context.json()) as DeletePrivateCardResponse;
     return body.error ?? null;
   } catch {
     return null;
@@ -62,7 +62,7 @@ const _describeUndeletableCard = (lookup: Exclude<OwnCardLookup, { kind: 'found'
     case 'noCardForWord':
       return (
         `The user has no card of their own for "${lookup.word}". Only cards they made with ` +
-        'create_custom_card can be deleted; a card from the public dictionary leaves a deck ' +
+        'create_private_card can be deleted; a card from the public dictionary leaves a deck ' +
         `through remove_card_from_deck instead, which the user hears as taking "${lookup.word}" ` +
         'out of their deck.'
       );
@@ -75,30 +75,30 @@ const _describeUndeletableCard = (lookup: Exclude<OwnCardLookup, { kind: 'found'
 };
 
 /**
- * Registers a `delete_custom_card` tool that destroys one of the signed-in
+ * Registers a `delete_private_card` tool that destroys one of the signed-in
  * user's own cards for good.
  *
  * @param server - The MCP server to register the tool on
  * @param connection - Supabase project URL and publishable key
  */
-export const registerDeleteCustomCardTool = (
+export const registerDeletePrivateCardTool = (
   server: McpServer,
   connection: SupabaseConnection,
 ): void => {
   server.registerTool(
-    'delete_custom_card',
+    'delete_private_card',
     {
       title: 'Delete a card you made',
       description:
-        'Destroys a card the signed-in user made with create_custom_card: it leaves their ' +
+        'Destroys a card the signed-in user made with create_private_card: it leaves their ' +
         'private dictionary and every deck, and its image and audio are deleted. This is ' +
         'permanent — there is no undo, and remaking the word later spends another card of the ' +
         'monthly allowance and starts its review progress over. So confirm with the user ' +
         'before calling it, in terms of the card and the word ("that would delete your runway ' +
         'card for good — sure?"), never by naming a tool. Identify the card by `word`, or by ' +
-        '`cardId` from custom_card_creation_status. Two gentler things are usually what they ' +
+        '`cardId` from check_private_card_status. Two gentler things are usually what they ' +
         'actually want: remove_card_from_deck stops a card coming up in reviews but keeps it ' +
-        'in their private dictionary, ready to add back; and update_custom_card remakes a bad ' +
+        'in their private dictionary, ready to add back; and update_private_card remakes a bad ' +
         'card in place, keeping its review progress. Only cards the user made can be deleted — ' +
         'a card from the public Inoh dictionary belongs to everyone.',
       inputSchema: {
@@ -112,7 +112,7 @@ export const registerDeleteCustomCardTool = (
           .string()
           .uuid()
           .optional()
-          .describe('The cardId from custom_card_creation_status. Use this or word.'),
+          .describe('The cardId from check_private_card_status. Use this or word.'),
       },
     },
     async ({ word, cardId }, extra) => {
@@ -133,8 +133,8 @@ export const registerDeleteCustomCardTool = (
       // write, so a client-side delete would always leave the image and three
       // audio clips behind. The edge function is the one path that cannot
       // forget them, and it re-checks ownership itself.
-      const { error } = await supabase.functions.invoke<DeleteCustomCardResponse>(
-        DELETE_CUSTOM_CARD_FUNCTION,
+      const { error } = await supabase.functions.invoke<DeletePrivateCardResponse>(
+        DELETE_PRIVATE_CARD_FUNCTION,
         { body: { dictionary_id: card.id } },
       );
 
@@ -154,7 +154,7 @@ export const registerDeleteCustomCardTool = (
               `Deleted the card for "${card.word}". It is gone from the user's private ` +
               'dictionary and every deck, along with its image and audio, and cannot be ' +
               'brought back.\n\n' +
-              'If they change their mind, create_custom_card can make a fresh card for the ' +
+              'If they change their mind, create_private_card can make a fresh card for the ' +
               'same word — a new card, spending another of the monthly allowance, with review ' +
               'progress starting over. Offer that in those words, never by naming a tool.',
           },
