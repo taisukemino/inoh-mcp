@@ -4,7 +4,7 @@ import { findCardById, findOwnCardsByWord, type DictionaryCard } from '../dictio
 /**
  * What naming a card by `word` or `cardId` turned out to mean.
  *
- * Reason: delete_custom_card and update_custom_card both act on one card the
+ * Reason: delete_private_card and update_private_card both act on one card the
  * caller made, and both have to settle which one from the same two arguments.
  * The lookup is shared; the wording is not, because "cannot be deleted" and
  * "cannot be redone" need different advice attached.
@@ -17,7 +17,7 @@ export type OwnCardLookup =
   | { kind: 'severalCardsForWord'; word: string; cards: DictionaryCard[] };
 
 /**
- * Find the one custom card of the caller's that `word` or `cardId` names.
+ * Find the one private card of the caller's that `word` or `cardId` names.
  *
  * Exactly one of the two is expected — requireOneCardSelector checks that
  * first. RLS limits both routes to the public dictionary and the caller's own

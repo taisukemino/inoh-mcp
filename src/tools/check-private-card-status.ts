@@ -3,36 +3,36 @@ import * as z from 'zod/v4';
 import { getUserAccessToken } from '../auth/index.js';
 import {
   CARD_REQUEST_COLUMNS,
-  describeCustomCardStatus,
+  describePrivateCardStatus,
   describeLowAllowance,
-  fetchCustomCardQuota,
-  toCustomCardStatus,
+  fetchPrivateCardQuota,
+  toPrivateCardStatus,
   type CardRequestRow,
-} from '../custom-cards/index.js';
+} from '../private-cards/index.js';
 import { createUserSupabaseClient, type SupabaseConnection } from '../supabase/index.js';
 
 /** How many recent cards to report when no specific request is named. */
 const RECENT_CARD_LIMIT = 5;
 
 /**
- * Registers a `custom_card_creation_status` tool that reports whether the cards
+ * Registers a `check_private_card_status` tool that reports whether the cards
  * a user asked for are ready yet.
  *
  * @param server - The MCP server to register the tool on
  * @param connection - Supabase project URL and publishable key
  */
-export const registerCustomCardCreationStatusTool = (
+export const registerCheckPrivateCardStatusTool = (
   server: McpServer,
   connection: SupabaseConnection,
 ): void => {
   server.registerTool(
-    'custom_card_creation_status',
+    'check_private_card_status',
     {
-      title: 'Custom card creation status',
+      title: 'Private card status',
       description:
-        'Reports how the custom cards the signed-in user asked for are coming along: still ' +
+        'Reports how the private cards the signed-in user asked for are coming along: still ' +
         'generating, ready (with a link to the card), or failed (with the reason). Pass the ' +
-        'requestId from create_custom_card or update_custom_card to check one, or omit it for ' +
+        'requestId from create_private_card or update_private_card to check one, or omit it for ' +
         'their most recent cards. A `redoOfCardId` means that entry is remaking a card they ' +
         'already had rather than adding a new one. Generation normally takes under a minute, ' +
         'so if something is still generating it is worth waiting a moment before checking ' +
@@ -43,7 +43,7 @@ export const registerCustomCardCreationStatusTool = (
           .uuid()
           .optional()
           .describe(
-            'The requestId returned by create_custom_card or update_custom_card. Omit to list ' +
+            'The requestId returned by create_private_card or update_private_card. Omit to list ' +
               'recent cards.',
           ),
       },
@@ -69,7 +69,7 @@ export const registerCustomCardCreationStatusTool = (
         throw new Error(`Could not read card status: ${error.message}`);
       }
 
-      const statuses = ((data ?? []) as CardRequestRow[]).map(toCustomCardStatus);
+      const statuses = ((data ?? []) as CardRequestRow[]).map(toPrivateCardStatus);
       const [firstStatus] = statuses;
 
       if (firstStatus === undefined) {
@@ -79,8 +79,8 @@ export const registerCustomCardCreationStatusTool = (
               type: 'text',
               text:
                 requestId === undefined
-                  ? 'This user has not created any custom cards yet. Use create_custom_card to make one.'
-                  : `No custom card request found with id ${requestId}. It may belong to another account.`,
+                  ? 'This user has not created any private cards yet. Use create_private_card to make one.'
+                  : `No private card request found with id ${requestId}. It may belong to another account.`,
             },
           ],
         };
@@ -88,12 +88,12 @@ export const registerCustomCardCreationStatusTool = (
 
       const summary =
         requestId === undefined
-          ? `${statuses.length} most recent custom card(s).`
-          : describeCustomCardStatus(firstStatus);
+          ? `${statuses.length} most recent private card(s).`
+          : describePrivateCardStatus(firstStatus);
 
       // Reason: read only to decide whether the allowance is worth raising. The
       // tally is deliberately not reported on every check — see describeLowAllowance.
-      const lowAllowanceNote = describeLowAllowance(await fetchCustomCardQuota(supabase));
+      const lowAllowanceNote = describeLowAllowance(await fetchPrivateCardQuota(supabase));
 
       return {
         content: [

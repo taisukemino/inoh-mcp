@@ -1,16 +1,16 @@
 export {
-  CUSTOM_CARD_MONTHLY_LIMITS,
+  PRIVATE_CARD_MONTHLY_LIMITS,
   describeLowAllowance,
-  fetchCustomCardQuota,
-  type CustomCardQuota,
+  fetchPrivateCardQuota,
+  type PrivateCardQuota,
   type SubscriptionPlan,
 } from './monthly-quota.js';
 export {
   CARD_REQUEST_COLUMNS,
-  describeCustomCardStatus,
-  toCustomCardStatus,
+  describePrivateCardStatus,
+  toPrivateCardStatus,
   type CardRequestRow,
-  type CustomCardProgress,
-  type CustomCardStatus,
+  type PrivateCardProgress,
+  type PrivateCardStatus,
 } from './card-request-progress.js';
 export { buildDefaultContext, describeCardRequestInsertError } from './card-request-insert.js';

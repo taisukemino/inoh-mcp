@@ -70,7 +70,7 @@ export const registerRemoveCardFromDeckTool = (
         'adding it back later starts it over, so confirm with the user first — in those terms, ' +
         'about the card and the progress, never by naming a tool. Deleting a card the user ' +
         'made, image and audio and all, is a different and permanent thing, which ' +
-        'delete_custom_card does.',
+        'delete_private_card does.',
       inputSchema: {
         word: z
           .string()

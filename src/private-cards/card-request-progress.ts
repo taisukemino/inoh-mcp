@@ -1,7 +1,7 @@
 import { buildWordPageUrl } from '../web-app-urls.js';
 
 /** The six database statuses collapsed into what a caller actually needs. */
-export type CustomCardProgress = 'generating' | 'ready' | 'failed' | 'deleted';
+export type PrivateCardProgress = 'generating' | 'ready' | 'failed' | 'deleted';
 
 /** Columns every custom-card tool reads back from `card_requests`. */
 export const CARD_REQUEST_COLUMNS =
@@ -19,13 +19,13 @@ export interface CardRequestRow {
   created_at: string;
 }
 
-export interface CustomCardStatus {
+export interface PrivateCardStatus {
   requestId: string;
   word: string;
   context: string;
-  progress: CustomCardProgress;
+  progress: PrivateCardProgress;
   requestedAt: string;
-  /** Set once the card exists. This is what delete_custom_card takes. */
+  /** Set once the card exists. This is what delete_private_card takes. */
   cardId?: string;
   /** Set once the card exists, so the client can link straight to it. */
   cardUrl?: string;
@@ -52,7 +52,7 @@ export interface CustomCardStatus {
  * because it is what the monthly quota counts. Reporting that as `ready` would
  * have a caller hand out a link to a card that no longer exists.
  */
-const _readProgress = (row: CardRequestRow): CustomCardProgress => {
+const _readProgress = (row: CardRequestRow): PrivateCardProgress => {
   if (row.status === 'approved') return row.dictionary_id === null ? 'deleted' : 'ready';
   if (row.status === 'rejected') return 'failed';
   if (row.status === 'failed' && row.error_reason !== null) return 'failed';
@@ -65,7 +65,7 @@ const _readProgress = (row: CardRequestRow): CustomCardProgress => {
  * @param status - A shaped status
  * @returns A phrase naming the card and what is happening to it
  */
-export const describeCustomCardStatus = (status: CustomCardStatus): string =>
+export const describePrivateCardStatus = (status: PrivateCardStatus): string =>
   status.redoOfCardId === undefined
     ? `Card "${status.word}" is ${status.progress}.`
     : `The redo of "${status.word}" is ${status.progress}.`;
@@ -76,7 +76,7 @@ export const describeCustomCardStatus = (status: CustomCardStatus): string =>
  * @param row - A row belonging to the signed-in user
  * @returns Progress plus the card link or failure reason, when there is one
  */
-export const toCustomCardStatus = (row: CardRequestRow): CustomCardStatus => {
+export const toPrivateCardStatus = (row: CardRequestRow): PrivateCardStatus => {
   const progress = _readProgress(row);
 
   return {

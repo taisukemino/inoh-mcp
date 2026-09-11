@@ -7,8 +7,8 @@ import {
   buildDefaultContext,
   describeCardRequestInsertError,
   describeLowAllowance,
-  fetchCustomCardQuota,
-} from '../custom-cards/index.js';
+  fetchPrivateCardQuota,
+} from '../private-cards/index.js';
 import { createUserSupabaseClient, type SupabaseConnection } from '../supabase/index.js';
 import { buildCardChoiceQuestion, requireOneCardSelector } from './card-selection.js';
 import { lookupOwnCard, type OwnCardLookup } from './own-card-lookup.js';
@@ -34,13 +34,13 @@ const _describeUnredoableCard = (lookup: Exclude<OwnCardLookup, { kind: 'found' 
       );
     case 'noCardForWord':
       return (
-        `The user has no custom card for "${lookup.word}". Only cards they created with ` +
-        'create_custom_card can be redone. If the public dictionary has a card for the word, ' +
+        `The user has no private card for "${lookup.word}". Only cards they created with ` +
+        'create_private_card can be redone. If the public dictionary has a card for the word, ' +
         'add_card_to_deck is what they want instead.'
       );
     case 'severalCardsForWord':
       return (
-        `The user has ${lookup.cards.length} custom cards for "${lookup.word}". ` +
+        `The user has ${lookup.cards.length} private cards for "${lookup.word}". ` +
         buildCardChoiceQuestion(lookup.cards)
       );
   }
@@ -74,32 +74,34 @@ const _readLastContext = async (
 };
 
 /**
- * Registers an `update_custom_card` tool that regenerates one of the signed-in
+ * Registers an `update_private_card` tool that regenerates one of the signed-in
  * user's own cards in place, keeping its review history.
  *
  * @param server - The MCP server to register the tool on
  * @param connection - Supabase project URL and publishable key
  */
-export const registerUpdateCustomCardTool = (
+export const registerUpdatePrivateCardTool = (
   server: McpServer,
   connection: SupabaseConnection,
 ): void => {
   server.registerTool(
-    'update_custom_card',
+    'update_private_card',
     {
-      title: 'Redo a card you created',
+      title: 'Update a card you made',
       description:
-        'Remakes a card the signed-in user created with create_custom_card, when it came out ' +
+        'Remakes a card the signed-in user created with create_private_card, when it came out ' +
         'wrong: a definition that misses the sense they meant, a flat example sentence, an ' +
         'unhelpful image. Inoh regenerates the definition, sentence, image, audio and quiz ' +
         'options and writes them over the same card, so the card keeps its place in the deck ' +
         'and all of its review progress — unlike deleting and making a new one, which starts ' +
-        "the user's memory of the word over. Give `context` to say which sense to teach; " +
+        "the user's memory of the word over. It is the whole card or nothing: there is no way " +
+        'to change one field on its own, because everything except the word descends from the ' +
+        'word and the sense. Give `context` to say which sense to teach; ' +
         'without it the card is simply made again from the sense it already had. Identify the ' +
         'card by `word` or by `cardId`. This only works on cards the user made: a card from ' +
         'the shared Inoh dictionary belongs to everyone. To teach a different word, delete ' +
         'this card and create one for that word instead. Takes about a minute and finishes in ' +
-        'the background; call custom_card_creation_status to check on it. Counts as one card ' +
+        'the background; call check_private_card_status to check on it. Counts as one card ' +
         "against the user's monthly allowance, because it generates a new image.",
       inputSchema: {
         word: z
@@ -113,7 +115,7 @@ export const registerUpdateCustomCardTool = (
           .string()
           .uuid()
           .optional()
-          .describe('The cardId from custom_card_creation_status. Use this or word.'),
+          .describe('The cardId from check_private_card_status. Use this or word.'),
         context: z
           .string()
           .trim()
@@ -164,7 +166,7 @@ export const registerUpdateCustomCardTool = (
       if (error) {
         const explanation = describeCardRequestInsertError(
           error,
-          `"${card.word}" is already being remade. Call custom_card_creation_status to see how ` +
+          `"${card.word}" is already being remade. Call check_private_card_status to see how ` +
             'it is going, and wait for it to finish before asking for another.',
         );
         if (explanation !== null) {
@@ -175,7 +177,7 @@ export const registerUpdateCustomCardTool = (
 
       // Reason: read only to decide whether the allowance is worth raising. The
       // tally is deliberately not reported on every card — see describeLowAllowance.
-      const lowAllowanceNote = describeLowAllowance(await fetchCustomCardQuota(supabase));
+      const lowAllowanceNote = describeLowAllowance(await fetchPrivateCardQuota(supabase));
 
       return {
         content: [
@@ -196,7 +198,7 @@ export const registerUpdateCustomCardTool = (
                 null,
                 2,
               )}\n\n` +
-              'Call custom_card_creation_status with this requestId to check whether it is ready.' +
+              'Call check_private_card_status with this requestId to check whether it is ready.' +
               `${lowAllowanceNote === null ? '' : `\n\n${lowAllowanceNote}`}`,
           },
         ],
