@@ -156,7 +156,7 @@ export const registerUpdatePrivateCardTool = (
           // refuses a draft whose word does not match the card being rewritten.
           word: card.word,
           context: sense,
-          destination: 'custom',
+          destination: 'private',
           source: 'mcp',
           target_dictionary_id: card.id,
         })

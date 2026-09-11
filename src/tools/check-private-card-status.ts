@@ -56,7 +56,7 @@ export const registerCheckPrivateCardStatusTool = (
       let query = supabase
         .from('card_requests')
         .select(CARD_REQUEST_COLUMNS)
-        .eq('destination', 'custom');
+        .eq('destination', 'private');
 
       query =
         requestId === undefined
