@@ -23,16 +23,16 @@ Step-by-step instructions for Claude, Cursor, ChatGPT, Gemini, VS Code and more 
 
 ## What you can ask for
 
-| Tool                          | What it does                                                   |
-| ----------------------------- | -------------------------------------------------------------- |
-| `search_dictionary`           | Look a word or phrase up, public dictionary and your own cards |
-| `add_card_to_deck`            | Put a card that already exists into one of your decks          |
-| `remove_card_from_deck`       | Take a card back out of your deck, keeping the card itself     |
-| `create_custom_card`          | Build a complete flashcard for a word and file it in your deck |
-| `update_custom_card`          | Remake a card you made, keeping its review progress            |
-| `custom_card_creation_status` | Check whether a card you asked for is ready                    |
-| `delete_custom_card`          | Destroy a card you made, for good                              |
-| `check_account`               | Show which Inoh account you are signed in as                   |
+| Tool                        | What it does                                                   |
+| --------------------------- | -------------------------------------------------------------- |
+| `search_dictionary`         | Look a word or phrase up, public dictionary and your own cards |
+| `add_card_to_deck`          | Put a card that already exists into one of your decks          |
+| `remove_card_from_deck`     | Take a card back out of your deck, keeping the card itself     |
+| `create_private_card`       | Build a complete flashcard for a word and file it in your deck |
+| `update_private_card`       | Remake a card you made, keeping its review progress            |
+| `check_private_card_status` | Check whether a card you asked for is ready                    |
+| `delete_private_card`       | Destroy a card you made, for good                              |
+| `check_account`             | Show which Inoh account you are signed in as                   |
 
 Things people actually say:
 
@@ -62,7 +62,7 @@ you can add it back whenever you like, though you start its review progress over
 dictionary, and its image and audio are destroyed with it. There is no undo. Asking for the word
 again later makes a brand new card, spending another of your monthly allowance, so the AI will
 check with you before deleting anything. If the card is simply wrong rather than unwanted,
-`update_custom_card` remakes it in place and keeps your review progress.
+`update_private_card` remakes it in place and keeps your review progress.
 
 ## Cards you create
 
@@ -93,7 +93,7 @@ for a sense the existing one does not cover, say so and the AI can go ahead anyw
 
 ### When a card comes out wrong
 
-Ask for it again rather than deleting it. `update_custom_card` regenerates the definition, example
+Ask for it again rather than deleting it. `update_private_card` regenerates the definition, example
 sentence, image, audio and quiz options and writes them over the same card, so **the card keeps its
 place in your deck and everything Inoh knows about how well you remember it**. Deleting and remaking
 would throw that away and start the word over.
