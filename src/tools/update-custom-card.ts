@@ -26,16 +26,16 @@ const _describeUnredoableCard = (lookup: Exclude<OwnCardLookup, { kind: 'found' 
   switch (lookup.kind) {
     case 'noCardWithId':
       return `There is no card with id ${lookup.cardId} on this account.`;
-    case 'curatedCard':
+    case 'publicCard':
       return (
-        `"${lookup.card.word}" is a card from the shared Inoh dictionary, which belongs to ` +
-        'everyone, so it cannot be redone. Only cards the user created with create_custom_card ' +
+        `"${lookup.card.word}" is a card from the public Inoh dictionary, which belongs to ` +
+        "everyone, so it cannot be redone. Only cards in the user's own private dictionary " +
         'can be.'
       );
     case 'noCardForWord':
       return (
         `The user has no custom card for "${lookup.word}". Only cards they created with ` +
-        'create_custom_card can be redone. If Inoh has a curated card for the word, ' +
+        'create_custom_card can be redone. If the public dictionary has a card for the word, ' +
         'add_card_to_deck is what they want instead.'
       );
     case 'severalCardsForWord':
@@ -142,17 +142,6 @@ export const registerUpdateCustomCardTool = (
         return buildToolError(_describeUnredoableCard(lookup));
       }
       const { card } = lookup;
-
-      // Reason: a card its owner has deleted is out of every deck and minutes
-      // from being destroyed, so redoing it would spend a card of the monthly
-      // allowance on a target apply_custom_card_update may well find gone.
-      if (card.orphaned_at !== null) {
-        return buildToolError(
-          `"${card.word}" was deleted and is about to be destroyed for good, so it cannot be ` +
-            'remade. add_card_to_deck brings it back and calls that off, and it can be redone ' +
-            'after that; or create_custom_card makes a fresh card for the word.',
-        );
-      }
 
       const sense =
         context ?? (await _readLastContext(supabase, card.id)) ?? buildDefaultContext(card.word);

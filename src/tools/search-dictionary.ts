@@ -9,7 +9,7 @@ import { buildWordPageUrl } from '../web-app-urls.js';
  * Columns an AI client can use. Media paths and quiz distractors are left out
  * on purpose: they are meaningless in a chat and bloat every result.
  */
-const SEARCH_RESULT_COLUMNS = 'id, word, phonetic, definition, example_sentence';
+const SEARCH_RESULT_COLUMNS = 'id, word, phonetic, definition, example_sentence, owner_user_id';
 
 interface DictionarySearchRow {
   id: string;
@@ -17,21 +17,34 @@ interface DictionarySearchRow {
   phonetic: string | null;
   definition: string;
   example_sentence: string;
+  /** Set when the row is one of the caller's own cards; RLS returns no one else's. */
+  owner_user_id: string | null;
 }
 
-interface DictionarySearchResult extends DictionarySearchRow {
-  /** Public word page in the Inoh web app, so clients can link to the full card. */
+interface DictionarySearchResult {
+  id: string;
+  word: string;
+  phonetic: string | null;
+  definition: string;
+  example_sentence: string;
+  /** True when this is the caller's own card rather than a public dictionary entry. */
+  isPrivate: boolean;
+  /** Word page in the Inoh web app, so clients can link to the full card. */
   url: string;
 }
 
-const _toSearchResult = (row: DictionarySearchRow): DictionarySearchResult => ({
+const _toSearchResult = ({
+  owner_user_id,
+  ...row
+}: DictionarySearchRow): DictionarySearchResult => ({
   ...row,
+  isPrivate: owner_user_id !== null,
   url: buildWordPageUrl(row.id),
 });
 
 /**
  * Registers a `search_dictionary` tool backed by the `search_dictionary_words`
- * Postgres function, the same search the Inoh app's Discover bar uses.
+ * Postgres function, the same search the Inoh app's Dictionary tab uses.
  *
  * @param server - The MCP server to register the tool on
  * @param connection - Supabase project URL and publishable key
@@ -47,9 +60,12 @@ export const registerSearchDictionaryTool = (
       description:
         'Searches the Inoh dictionary for a word or phrase. Matches words containing the query ' +
         '(exact matches first) and falls back to typo-tolerant matching when nothing contains it. ' +
-        'Returns up to 20 entries with id, word, phonetic, definition, example sentence and a ' +
-        'link to the word page on inoh.app. Pass an id to add_card_to_deck to put that card in ' +
-        "the user's deck. Only curated entries are searched, never cards a user made themselves.",
+        'Returns up to 20 entries with id, word, phonetic, definition, example sentence, a link ' +
+        'to the word page on inoh.app, and `isPrivate`. Pass an id to add_card_to_deck to put ' +
+        "that card in the user's deck. Both dictionaries are searched: the public Inoh " +
+        "dictionary, and the user's own private dictionary — their cards come back with " +
+        '`isPrivate: true`, so describe one as a card they made rather than as an Inoh entry, ' +
+        'and remember only those can be deleted or remade.',
       inputSchema: {
         query: z
           .string()
@@ -72,7 +88,7 @@ export const registerSearchDictionaryTool = (
       const matches = ((data ?? []) as DictionarySearchRow[]).map(_toSearchResult);
       const summary =
         matches.length === 0
-          ? `No dictionary entry matches "${query}". The word may not be in the Inoh dictionary yet.`
+          ? `Nothing matches "${query}" in the public Inoh dictionary or the user's own cards. The word may not be in the dictionary yet.`
           : `${matches.length} match(es) for "${query}".`;
 
       return {

@@ -62,9 +62,10 @@ export const registerAddCardToDeckTool = (
       description:
         "Adds a card that already exists to one of the signed-in user's decks, so it comes " +
         'up in their reviews. Identify it by `cardId` from search_dictionary, or by `word`. ' +
-        'Use this for words already in the Inoh dictionary; use create_custom_card only when the ' +
-        'dictionary does not have the word, since a curated card is better than a generated ' +
-        'duplicate. Adding costs nothing against the monthly custom card allowance, though ' +
+        'Use this for words already in the public Inoh dictionary; use create_custom_card only ' +
+        'when the dictionary does not have the word, since a public dictionary card is better ' +
+        "than a generated duplicate. It also re-adds a card from the user's own private " +
+        'dictionary that they had taken out of their deck. Adding costs nothing against the monthly custom card allowance, though ' +
         "each plan caps how many cards a deck can hold in total. A card's review progress " +
         'starts fresh.',
       inputSchema: {
@@ -173,23 +174,12 @@ export const registerAddCardToDeckTool = (
         throw new Error(`Could not add the card: ${error.message}`);
       }
 
-      // Reason: the insert trigger clears orphaned_at, so an add is also how a
-      // card the user deleted gets rescued from the deletion sweep. Worth saying
-      // out loud, because they may have asked for it back a minute after
-      // changing their mind.
-      const rescueNote =
-        card.orphaned_at === null
-          ? ''
-          : ' It had been deleted and was about to be destroyed for good; adding it back has ' +
-            'called that off. The card is as it was — same definition, sentence, image and ' +
-            'audio — though its review progress starts over.';
-
       return {
         content: [
           {
             type: 'text',
             text:
-              `Added "${card.word}" to the "${targetDeck.name}" deck.${rescueNote}\n` +
+              `Added "${card.word}" to the "${targetDeck.name}" deck.\n` +
               buildWordPageUrl(card.id),
           },
         ],

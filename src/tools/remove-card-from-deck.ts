@@ -63,13 +63,14 @@ export const registerRemoveCardFromDeckTool = (
     {
       title: 'Remove a card from a deck',
       description:
-        "Takes a card out of the signed-in user's deck so it stops coming up in reviews. The " +
-        'card stays in the shared Inoh dictionary for everyone else. Identify it by `word` or ' +
-        'by `cardId`. Their review progress for the card is lost and adding it back later ' +
-        'starts it over, so confirm with the user first — in those terms, about the card and ' +
-        'the progress, never by naming a tool. This only works on cards from the ' +
-        'Inoh dictionary: a card the user created themselves cannot be parked outside a deck, ' +
-        'so removing one means deleting it, which delete_custom_card does.',
+        "Takes a card out of the signed-in user's deck so it stops coming up in reviews. " +
+        'Nothing is destroyed: a public dictionary card stays in the dictionary for everyone, ' +
+        'and a card the user made stays in their own private dictionary, ready to add back. ' +
+        'Identify it by `word` or by `cardId`. Their review progress for the card is lost and ' +
+        'adding it back later starts it over, so confirm with the user first — in those terms, ' +
+        'about the card and the progress, never by naming a tool. Deleting a card the user ' +
+        'made, image and audio and all, is a different and permanent thing, which ' +
+        'delete_custom_card does.',
       inputSchema: {
         word: z
           .string()
@@ -124,19 +125,6 @@ export const registerRemoveCardFromDeckTool = (
         return buildToolError('Could not work out which card to remove.');
       }
 
-      // Reason: for a card the user made, leaving a deck is what starts the
-      // deletion sweep, so this tool would quietly destroy it. Routing that
-      // through delete_custom_card keeps "remove" and "delete" honest.
-      if (card.owner_user_id !== null) {
-        return buildToolError(
-          `"${card.word}" is a card the user created, not one from the Inoh dictionary. Cards ` +
-            'they made cannot sit outside a deck, so taking it out means deleting it, which ' +
-            'delete_custom_card does — and undoes for a few minutes afterwards, so there is no ' +
-            'need to warn the user off first. To them this is still just taking the ' +
-            `${card.word} card out of their deck; the difference is Inoh's, not theirs.`,
-        );
-      }
-
       const { data, error } = await supabase
         .from('user_cards')
         .delete()
@@ -156,15 +144,18 @@ export const registerRemoveCardFromDeckTool = (
       const decks = await fetchDecks(supabase);
       const deck = decks.find((candidate) => candidate.id === card.deckId);
       const deckLabel = deck === undefined ? 'their deck' : `their "${deck.name}" deck`;
+      const whereItRemains =
+        card.owner_user_id === null
+          ? 'The word is still in the public Inoh dictionary'
+          : "The card is still in the user's private dictionary";
 
       return {
         content: [
           {
             type: 'text',
             text:
-              `Removed "${card.word}" from ${deckLabel}. The word is still in the Inoh ` +
-              'dictionary, so it can be added back at any time, but the review progress for it ' +
-              'is gone.',
+              `Removed "${card.word}" from ${deckLabel}. ${whereItRemains}, so it can be added ` +
+              'back at any time, but the review progress for it is gone.',
           },
         ],
       };
