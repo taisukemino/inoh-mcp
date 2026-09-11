@@ -54,23 +54,23 @@ const _normalizeApostrophes = (word: string): string =>
  * @returns A message telling the caller how to proceed
  */
 const _describeExistingCards = (word: string, existingCards: DictionaryCard[]): string => {
-  const curated = existingCards.filter((card) => card.owner_user_id === null);
+  const publicCards = existingCards.filter((card) => card.owner_user_id === null);
   const ownCards = existingCards.filter((card) => card.owner_user_id !== null);
 
   const paragraphs: string[] = [];
 
-  if (curated.length > 0) {
+  if (publicCards.length > 0) {
     paragraphs.push(
-      `The Inoh dictionary already has ${curated.length === 1 ? 'a card' : `${curated.length} cards`} ` +
-        `for "${word}". A curated card is written and checked by Inoh, and adding one costs ` +
-        'nothing against the monthly allowance. Offer them to the user by what they mean, not ' +
-        `by id:\n${formatCardChoices(curated)}`,
+      `The public Inoh dictionary already has ${publicCards.length === 1 ? 'a card' : `${publicCards.length} cards`} ` +
+        `for "${word}". A public dictionary card is written and checked by Inoh, and adding one ` +
+        'costs nothing against the monthly allowance. Offer them to the user by what they mean, ' +
+        `not by id:\n${formatCardChoices(publicCards)}`,
     );
   }
 
   if (ownCards.length > 0) {
     paragraphs.push(
-      `The user has already made ${ownCards.length === 1 ? 'a card' : `${ownCards.length} cards`} ` +
+      `The user's private dictionary already has ${ownCards.length === 1 ? 'a card' : `${ownCards.length} cards`} ` +
         `for "${word}":\n${formatCardChoices(ownCards)}`,
     );
   }
@@ -111,13 +111,14 @@ export const registerCreateCustomCardTool = (
       title: 'Create a custom card',
       description:
         'Creates a full Inoh flashcard for a word or phrase and adds it to the signed-in ' +
-        "user's deck. The card is theirs alone: it never enters the shared Inoh dictionary " +
-        'or the Discover feed. Inoh generates everything needed to quiz on it — definition, ' +
+        "user's deck. The card goes into their private dictionary, which only they can see, " +
+        'never into the public Inoh dictionary. Inoh generates everything needed to quiz on it — definition, ' +
         'example sentence, pronunciation audio, image, phonetic and quiz distractors — so ' +
         'this takes about a minute and finishes in the background. Call ' +
         'custom_card_creation_status to check on it. If the Inoh dictionary already has the ' +
-        'word, this stops and points at the existing card rather than making a duplicate, ' +
-        'since a curated card is better and costs no allowance. Each plan allows a set ' +
+        'word — or the user already made one for it — this stops and points at that card ' +
+        'rather than making a duplicate, since a public dictionary card is better and costs no ' +
+        'allowance. Each plan allows a set ' +
         'number of custom cards per month. Inoh only generates English cards, so `word` has ' +
         'to be English — but the user can ask in any language, and `context` can be written ' +
         'in whatever language they used.',
@@ -173,13 +174,11 @@ export const registerCreateCustomCardTool = (
       const supabase = createUserSupabaseClient(connection, getUserAccessToken(extra.authInfo));
 
       if (createAnyway !== true) {
-        // Reason: a card the user has just deleted is out of their deck and
-        // minutes from being destroyed, so it is not a duplicate worth
-        // protecting. Counting it would stop the very next thing they are
-        // likely to ask for -- the same word, made again.
-        const existingCards = (await findCardsByWord(supabase, word)).filter(
-          (card) => card.orphaned_at === null,
-        );
+        // Reason: a card the user owns counts whether or not it is in a deck.
+        // A private card sitting outside every deck is still theirs, still in
+        // their private dictionary, and still what they should be offered
+        // rather than a second copy bought with the monthly allowance.
+        const existingCards = await findCardsByWord(supabase, word);
         if (existingCards.length > 0) {
           return buildToolError(_describeExistingCards(word, existingCards));
         }

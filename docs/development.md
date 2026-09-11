@@ -87,6 +87,20 @@ connect. `&&` means a failed mint writes no config at all.
 
 Or paste it as a Bearer token in any HTTP-capable MCP client.
 
+**One tool needs a real sign-in instead.** `delete_custom_card` calls the
+`delete-custom-card` edge function, which verifies the caller with
+`auth.getUser` — and that checks the token's session against `auth.sessions`. A
+minted token carries a `session_id` that was never issued, so the function
+answers `Invalid or expired user token`. Everything else works on a minted
+token, because Row Level Security reads the JWT's claims and never looks the
+session up. To exercise deletion locally, sign the user in for a genuine token:
+
+```bash
+TOKEN=$(curl -s -X POST "$SUPABASE_URL/auth/v1/token?grant_type=password" \
+  -H "apikey: $SUPABASE_PUBLISHABLE_KEY" -H 'Content-Type: application/json' \
+  -d '{"email":"you@example.com","password":"..."}' | jq -r .access_token)
+```
+
 Name it `inoh-local`, not `inoh`, so it cannot be confused with the hosted server registered as
 `inoh` (see [installation.md](./installation.md)). The two can then coexist: `inoh` for
 production, `inoh-local` for whatever `pnpm dev` is serving.
