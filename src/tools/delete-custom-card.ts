@@ -1,11 +1,42 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import * as z from 'zod/v4';
 import { getUserAccessToken } from '../auth/index.js';
-import { CUSTOM_CARD_RESCUE_MINUTES } from '../constants.js';
 import { createUserSupabaseClient, type SupabaseConnection } from '../supabase/index.js';
 import { buildCardChoiceQuestion, requireOneCardSelector } from './card-selection.js';
 import { lookupOwnCard, type OwnCardLookup } from './own-card-lookup.js';
 import { buildToolError } from './tool-result.js';
+
+/** The edge function that owns deletion: the row, its deck rows, and its media. */
+const DELETE_CUSTOM_CARD_FUNCTION = 'delete-custom-card';
+
+/** What the function answers with when it refuses or fails. */
+interface DeleteCustomCardResponse {
+  error?: string;
+}
+
+/**
+ * The reason the function gave for refusing, if it gave one.
+ *
+ * Reason: supabase-js turns any non-2xx into an error whose message is only
+ * "Edge Function returned a non-2xx status code", and hangs the real Response
+ * off `context`. The function's own message is the useful one — "Card not
+ * found. It may already have been deleted." — so it is read back out here
+ * rather than thrown away.
+ *
+ * @param error - What functions.invoke returned
+ * @returns The function's message, or null when this was not a refusal
+ */
+const _readRefusal = async (error: unknown): Promise<string | null> => {
+  const { context } = error as { context?: unknown };
+  if (!(context instanceof Response)) return null;
+
+  try {
+    const body = (await context.json()) as DeleteCustomCardResponse;
+    return body.error ?? null;
+  } catch {
+    return null;
+  }
+};
 
 /**
  * Say why no card could be deleted, and what to do about it.
@@ -17,31 +48,31 @@ const _describeUndeletableCard = (lookup: Exclude<OwnCardLookup, { kind: 'found'
   switch (lookup.kind) {
     case 'noCardWithId':
       return `There is no card with id ${lookup.cardId} on this account.`;
-    case 'curatedCard':
+    case 'publicCard':
       return (
-        `"${lookup.card.word}" is a card from the shared Inoh dictionary, which belongs to ` +
-        'everyone, so it cannot be deleted. Only cards the user created with create_custom_card ' +
+        `"${lookup.card.word}" is a card from the public Inoh dictionary, which belongs to ` +
+        "everyone, so it cannot be deleted. Only cards in the user's own private dictionary " +
         'can be. Taking this one out of the deck is the thing to offer instead — say it as ' +
         `"I can take ${lookup.card.word} out of your deck", and call remove_card_from_deck.`
       );
     case 'noCardForWord':
       return (
-        `The user has no custom card for "${lookup.word}". Only cards they created with ` +
-        'create_custom_card can be deleted; a card from the Inoh dictionary leaves a deck ' +
+        `The user has no card of their own for "${lookup.word}". Only cards they made with ` +
+        'create_custom_card can be deleted; a card from the public dictionary leaves a deck ' +
         `through remove_card_from_deck instead, which the user hears as taking "${lookup.word}" ` +
         'out of their deck.'
       );
     case 'severalCardsForWord':
       return (
-        `The user has ${lookup.cards.length} custom cards for "${lookup.word}". ` +
+        `The user has ${lookup.cards.length} cards of their own for "${lookup.word}". ` +
         buildCardChoiceQuestion(lookup.cards)
       );
   }
 };
 
 /**
- * Registers a `delete_custom_card` tool that takes one of the signed-in user's
- * own cards out of their deck and leaves it to be destroyed.
+ * Registers a `delete_custom_card` tool that destroys one of the signed-in
+ * user's own cards for good.
  *
  * @param server - The MCP server to register the tool on
  * @param connection - Supabase project URL and publishable key
@@ -53,21 +84,19 @@ export const registerDeleteCustomCardTool = (
   server.registerTool(
     'delete_custom_card',
     {
-      title: 'Delete a card you created',
+      title: 'Delete a card you made',
       description:
-        'Deletes a card the signed-in user created with create_custom_card. The card leaves ' +
-        'their deck at once and stops coming up in reviews, and Inoh destroys it and its image ' +
-        `and audio about ${CUSTOM_CARD_RESCUE_MINUTES} minutes later. Until then ` +
-        'add_card_to_deck puts it back with the same definition, sentence, image and audio, ' +
-        'though its review progress starts over. So when the user asks for a card to go, delete ' +
-        'it and then offer to bring it back or make the word again, rather than warning them ' +
-        'off first. Identify the card by `word`, or by `cardId` from ' +
-        'custom_card_creation_status. Only cards the user made can be deleted: a card from the ' +
-        'shared Inoh dictionary belongs to everyone, and remove_card_from_deck is what takes ' +
-        'one of those out of a deck. If the card is bad rather than unwanted, ' +
-        'update_custom_card remakes it in place and keeps its review progress, which deleting ' +
-        'does not. Whichever way it goes, talk to the user about the card and the word — ' +
-        '"I can remake the runway card" — and never name a tool to them.',
+        'Destroys a card the signed-in user made with create_custom_card: it leaves their ' +
+        'private dictionary and every deck, and its image and audio are deleted. This is ' +
+        'permanent — there is no undo, and remaking the word later spends another card of the ' +
+        'monthly allowance and starts its review progress over. So confirm with the user ' +
+        'before calling it, in terms of the card and the word ("that would delete your runway ' +
+        'card for good — sure?"), never by naming a tool. Identify the card by `word`, or by ' +
+        '`cardId` from custom_card_creation_status. Two gentler things are usually what they ' +
+        'actually want: remove_card_from_deck stops a card coming up in reviews but keeps it ' +
+        'in their private dictionary, ready to add back; and update_custom_card remakes a bad ' +
+        'card in place, keeping its review progress. Only cards the user made can be deleted — ' +
+        'a card from the public Inoh dictionary belongs to everyone.',
       inputSchema: {
         word: z
           .string()
@@ -96,37 +125,21 @@ export const registerDeleteCustomCardTool = (
       }
       const { card } = lookup;
 
-      if (card.orphaned_at !== null) {
-        return buildToolError(
-          `"${card.word}" was already deleted and is out of the user's deck, waiting to be ` +
-            'destroyed. Nothing more to do — though if they have changed their mind, it can ' +
-            'still be put back in their deck for a few minutes, which add_card_to_deck does.',
-        );
-      }
-
-      // Reason: deleting the deck row rather than the card is what makes this
-      // undoable. track_custom_card_orphaning stamps the card as out of every
-      // deck, sweep-orphaned-custom-cards destroys it and its media once it has
-      // been out for CUSTOM_CARD_RESCUE_MINUTES, and an add_card_to_deck inside
-      // that window clears the stamp and calls the sweep off. RLS scopes
-      // user_cards to the caller, so this can only ever remove their own row.
-      const { data, error } = await supabase
-        .from('user_cards')
-        .delete()
-        .eq('dictionary_id', card.id)
-        .select('id');
+      // Reason: the media lives in Storage, which only the service role may
+      // write, so a client-side delete would always leave the image and three
+      // audio clips behind. The edge function is the one path that cannot
+      // forget them, and it re-checks ownership itself.
+      const { error } = await supabase.functions.invoke<DeleteCustomCardResponse>(
+        DELETE_CUSTOM_CARD_FUNCTION,
+        { body: { dictionary_id: card.id } },
+      );
 
       if (error) {
+        const refusal = await _readRefusal(error);
+        if (refusal !== null) {
+          return buildToolError(refusal);
+        }
         throw new Error(`Could not delete the card: ${error.message}`);
-      }
-
-      // Reason: unreachable in practice — a custom card with no deck row is
-      // stamped as orphaned by the trigger, which the check above catches. Kept
-      // so a card in that state does not report a deletion that never happened.
-      if ((data ?? []).length === 0) {
-        return buildToolError(
-          `"${card.word}" is not in any of the user's decks, so there was nothing to delete.`,
-        );
       }
 
       return {
@@ -134,14 +147,12 @@ export const registerDeleteCustomCardTool = (
           {
             type: 'text',
             text:
-              `Deleted the card for "${card.word}" — it is out of the user's deck and will not ` +
-              'come up in reviews again.\n\n' +
-              `For about ${CUSTOM_CARD_RESCUE_MINUTES} minutes it can still be put back, image ` +
-              'and audio included, though its review progress starts over; add_card_to_deck is ' +
-              'what does that. After that the card and its media are gone for good.\n\n' +
-              'Now ask the user whether they want the card back, or a fresh one made for the ' +
-              `same word — in those words, e.g. "want me to put the ${card.word} card back?". ` +
-              'They should never hear a tool name.',
+              `Deleted the card for "${card.word}". It is gone from the user's private ` +
+              'dictionary and every deck, along with its image and audio, and cannot be ' +
+              'brought back.\n\n' +
+              'If they change their mind, create_custom_card can make a fresh card for the ' +
+              'same word — a new card, spending another of the monthly allowance, with review ' +
+              'progress starting over. Offer that in those words, never by naming a tool.',
           },
         ],
       };

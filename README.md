@@ -25,13 +25,13 @@ Step-by-step instructions for Claude, Cursor, ChatGPT, Gemini, VS Code and more 
 
 | Tool                          | What it does                                                   |
 | ----------------------------- | -------------------------------------------------------------- |
-| `search_dictionary`           | Look a word or phrase up in the Inoh dictionary                |
+| `search_dictionary`           | Look a word or phrase up, public dictionary and your own cards |
 | `add_card_to_deck`            | Put a card that already exists into one of your decks          |
-| `remove_card_from_deck`       | Take a dictionary card back out of your deck                   |
+| `remove_card_from_deck`       | Take a card back out of your deck, keeping the card itself     |
 | `create_custom_card`          | Build a complete flashcard for a word and file it in your deck |
-| `update_custom_card`          | Remake a card you created, keeping its review progress         |
+| `update_custom_card`          | Remake a card you made, keeping its review progress            |
 | `custom_card_creation_status` | Check whether a card you asked for is ready                    |
-| `delete_custom_card`          | Delete a card you created, undoable for about ten minutes      |
+| `delete_custom_card`          | Destroy a card you made, for good                              |
 | `check_account`               | Show which Inoh account you are signed in as                   |
 
 Things people actually say:
@@ -44,43 +44,43 @@ Things people actually say:
 - "My _moat_ card explains the wrong thing - redo it for the business sense."
 - "That picture on my _runway_ card is useless. Make the card again."
 - "Delete the _moat_ card I made earlier."
-- "Actually, put the _moat_ card back."
+- "Put the _banyan_ card back in my deck."
 
-Ask for a word and the AI looks it up first, adding the curated card when Inoh already has one and
-generating a fresh one only when it does not.
+Ask for a word and the AI looks it up first, adding the public dictionary's card when Inoh already
+has one and generating a fresh one only when it does not.
 
 ## Removing versus deleting
 
 These are different things, and the tools keep them apart.
 
-Taking a **dictionary card** out of your deck just ends your review of it. The word stays in Inoh
-for everyone, and you can add it back whenever you like, though you start its review progress over.
+**Removing** a card from your deck ends your review of it and nothing more. A public dictionary
+card stays in Inoh for everyone; a card you made stays in your own private dictionary. Either way
+you can add it back whenever you like, though you start its review progress over. This is what
+`remove_card_from_deck` does, for both kinds of card.
 
-A **card you made** cannot sit outside a deck, because nobody else has a copy to keep it alive.
-Removing one means deleting it, so `remove_card_from_deck` declines and points at
-`delete_custom_card` instead.
-
-Deleting takes the card out of your deck straight away, and Inoh destroys it and its image and
-audio about ten minutes later. Until then you can simply ask for it back: the card returns exactly
-as it was, apart from its review progress, which starts over. So nobody has to argue you out of
-deleting a card - say it goes, and change your mind afterwards if you like.
+**Deleting** applies only to cards you made, and it is permanent: the card leaves your private
+dictionary, and its image and audio are destroyed with it. There is no undo. Asking for the word
+again later makes a brand new card, spending another of your monthly allowance, so the AI will
+check with you before deleting anything. If the card is simply wrong rather than unwanted,
+`update_custom_card` remakes it in place and keeps your review progress.
 
 ## Cards you create
 
-A card you make here is yours alone. It never joins the shared Inoh dictionary, never appears in
-the Discover feed, and never shows up in anyone else's search. Two people asking for the same word
-each get their own.
+A card you make here is yours alone. It goes into your **private dictionary**, which only you can
+see: it never joins the public Inoh dictionary, and never shows up in anyone else's feed or search.
+Two people asking for the same word each get their own.
 
 It is a complete card rather than a stub: definition, example sentence, three audio clips, an image,
 phonetic transcription and both sets of quiz options. That means you can review it in the app the
-moment it appears, alongside curated cards. Making one takes about 20 seconds.
+moment it appears, alongside the public dictionary's cards — and it shows up in the app's
+Dictionary tab under Private, badged as yours. Making one takes about 20 seconds.
 
 Tell the AI which sense you mean when a word has several. "Runway" as months of cash is a different
 card from "runway" at an airport, and nothing reviews the result before it reaches you.
 
-If Inoh already has the word, generating stops before it starts and points you at the existing
-card. A curated card is written and checked by Inoh, and adding one costs nothing against your
-monthly allowance, so it is the better choice nearly always. When you really do want your own card
+If Inoh already has the word — or you made a card for it before — generating stops before it starts
+and points you at that card. A public dictionary card is written and checked by Inoh, and adding one
+costs nothing against your monthly allowance, so it is the better choice nearly always. When you really do want your own card
 for a sense the existing one does not cover, say so and the AI can go ahead anyway.
 
 **How many you can make**, per calendar month:

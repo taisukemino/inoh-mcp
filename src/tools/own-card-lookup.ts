@@ -12,7 +12,7 @@ import { findCardById, findOwnCardsByWord, type DictionaryCard } from '../dictio
 export type OwnCardLookup =
   | { kind: 'found'; card: DictionaryCard }
   | { kind: 'noCardWithId'; cardId: string }
-  | { kind: 'curatedCard'; card: DictionaryCard }
+  | { kind: 'publicCard'; card: DictionaryCard }
   | { kind: 'noCardForWord'; word: string }
   | { kind: 'severalCardsForWord'; word: string; cards: DictionaryCard[] };
 
@@ -20,8 +20,8 @@ export type OwnCardLookup =
  * Find the one custom card of the caller's that `word` or `cardId` names.
  *
  * Exactly one of the two is expected — requireOneCardSelector checks that
- * first. RLS limits both routes to curated entries and the caller's own cards,
- * so someone else's card id simply finds nothing.
+ * first. RLS limits both routes to the public dictionary and the caller's own
+ * cards, so someone else's card id simply finds nothing.
  *
  * @param supabase - Client acting as the signed-in user
  * @param word - The word on the card, when that is how it was named
@@ -41,7 +41,7 @@ export const lookupOwnCard = async (
       return { kind: 'noCardWithId', cardId };
     }
 
-    return card.owner_user_id === null ? { kind: 'curatedCard', card } : { kind: 'found', card };
+    return card.owner_user_id === null ? { kind: 'publicCard', card } : { kind: 'found', card };
   }
 
   const requestedWord = word ?? '';
@@ -51,20 +51,11 @@ export const lookupOwnCard = async (
     return { kind: 'noCardForWord', word: requestedWord };
   }
 
-  // Reason: a card its owner deleted is minutes from being destroyed, so it is
-  // not the one they mean while a live card for the same word exists -- someone
-  // who deleted a card and had it made again should not then be asked which of
-  // the two they meant. When every match is on its way out, they stay in the
-  // running, so the caller can be told the card was deleted rather than that
-  // there never was one.
-  const liveMatches = matches.filter((card) => card.orphaned_at === null);
-  const candidates = liveMatches.length > 0 ? liveMatches : matches;
-
-  if (candidates.length > 1) {
-    return { kind: 'severalCardsForWord', word: requestedWord, cards: candidates };
+  if (matches.length > 1) {
+    return { kind: 'severalCardsForWord', word: requestedWord, cards: matches };
   }
 
-  const [card] = candidates;
+  const [card] = matches;
   return card === undefined
     ? { kind: 'noCardForWord', word: requestedWord }
     : { kind: 'found', card };
