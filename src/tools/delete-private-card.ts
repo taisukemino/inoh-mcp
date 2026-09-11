@@ -7,7 +7,7 @@ import { lookupOwnCard, type OwnCardLookup } from './own-card-lookup.js';
 import { buildToolError } from './tool-result.js';
 
 /** The edge function that owns deletion: the row, its deck rows, and its media. */
-const DELETE_PRIVATE_CARD_FUNCTION = 'delete-custom-card';
+const DELETE_PRIVATE_CARD_FUNCTION = 'delete-private-card';
 
 /** What the function answers with when it refuses or fails. */
 interface DeletePrivateCardResponse {
