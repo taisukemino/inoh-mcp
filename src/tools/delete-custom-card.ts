@@ -18,17 +18,21 @@ interface DeleteCustomCardResponse {
  * The reason the function gave for refusing, if it gave one.
  *
  * Reason: supabase-js turns any non-2xx into an error whose message is only
- * "Edge Function returned a non-2xx status code", and hangs the real Response
+ * "Edge Function returned a non-2xx status code", and hangs the real response
  * off `context`. The function's own message is the useful one — "Card not
  * found. It may already have been deleted." — so it is read back out here
  * rather than thrown away.
+ *
+ * The response is recognised by having a `json()` rather than by
+ * `instanceof Response`: this package compiles against `lib: ES2022` with only
+ * Node types, where that global is not guaranteed to be a type.
  *
  * @param error - What functions.invoke returned
  * @returns The function's message, or null when this was not a refusal
  */
 const _readRefusal = async (error: unknown): Promise<string | null> => {
-  const { context } = error as { context?: unknown };
-  if (!(context instanceof Response)) return null;
+  const { context } = error as { context?: { json?: () => Promise<unknown> } };
+  if (typeof context?.json !== 'function') return null;
 
   try {
     const body = (await context.json()) as DeleteCustomCardResponse;
