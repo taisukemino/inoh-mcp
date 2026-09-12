@@ -18,7 +18,8 @@ You need a free [Inoh](https://app.inoh.app) account. Sign-in happens in your br
 normal email flow, so your AI client never sees your password, and you can revoke access at any
 time from your Inoh account settings.
 
-Step-by-step instructions for Claude, Cursor, ChatGPT, Gemini, VS Code and more are in
+Step-by-step instructions for Claude, Cursor, ChatGPT, Gemini, VS Code and more are at
+[docs.inoh.app](https://docs.inoh.app). The address and troubleshooting are also in
 [docs/installation.md](docs/installation.md).
 
 ## What you can ask for
