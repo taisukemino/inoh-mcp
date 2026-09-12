@@ -136,12 +136,6 @@ from your browser.
 
 Found something wrong? Open an issue on this repository.
 
-## Development
-
-Connecting to the server: [docs/installation.md](docs/installation.md).
-
-Local setup, architecture and the release process: [docs/development.md](docs/development.md).
-
 ## Licence
 
 All rights reserved. The source is published so you can audit what the server does with your

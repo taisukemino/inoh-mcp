@@ -5,10 +5,11 @@ node_modules/
 dist/
 *.tsbuildinfo
 
-# Environment files
+# Environment files - never commit these, they hold Supabase keys and secrets.
+# One file per environment: .env.local (local Supabase), .env.prod (production).
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
 
 # Logs
 logs/
@@ -16,6 +17,9 @@ logs/
 
 # OS files
 .DS_Store
+
+# Private working notes - kept on disk, out of the published repo.
+docs/development.md
 
 # IDE
 .idea/
