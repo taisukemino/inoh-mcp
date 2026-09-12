@@ -10,16 +10,20 @@ const SERVER_VERSION = '0.0.1';
 /**
  * What every client model is told once, before it sees a single tool.
  *
- * Reason: tool names are plumbing. A user who hears "update_private_card" has
- * to translate it back into something they could have said, so the phrasing
- * rule belongs here rather than repeated in every tool description.
+ * Reason: tool names and mechanics are plumbing. A user who hears
+ * "update_private_card", or which fields a redo rebuilds, has to translate it
+ * back into something they could have said, so the phrasing rule belongs here
+ * rather than repeated in every tool description.
  */
 const SERVER_INSTRUCTIONS =
   'Inoh is a vocabulary app: people keep decks of word cards and review them.\n\n' +
   'Never show an Inoh tool name to the user. When you offer them a next step, phrase it as ' +
   'something they could say back — "I can remake the enshittification card instead, which ' +
   'keeps your review progress" — not as the tool that would do it. The same goes for cardIds: ' +
-  'when two cards share a word, ask which meaning they mean by quoting the definitions.';
+  'when two cards share a word, ask which meaning they mean by quoting the definitions.\n\n' +
+  "Leave Inoh's inner workings out of the conversation too: parameter names, field names, " +
+  'and how a card gets put together. Tell the user what they get or lose — "it keeps your ' +
+  'review progress" — not how Inoh does it.';
 
 /**
  * Builds a fresh `McpServer` with all Inoh tools registered.
