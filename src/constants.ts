@@ -4,8 +4,15 @@ export const MCP_PATH = '/mcp';
 /** Unauthenticated liveness endpoint. */
 export const HEALTH_PATH = '/health';
 
-/** Public Inoh web app. Word pages live at `/word/<dictionaryId>` and are open to guests. */
-export const INOH_WEB_APP_URL = 'https://inoh.app';
+/**
+ * The Inoh web app. Word pages live at `/word/<dictionaryId>` and are open to
+ * guests.
+ *
+ * Its own host since PRI-20768: inoh.app serves the marketing site and the
+ * public dictionary pages, app.inoh.app serves the app. The old host still
+ * 308s every app path here, so an older client keeps working.
+ */
+export const INOH_WEB_APP_URL = 'https://app.inoh.app';
 
 /**
  * Longest word or phrase the tools accept.

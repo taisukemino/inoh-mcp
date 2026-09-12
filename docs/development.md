@@ -48,7 +48,7 @@ All variables are documented in [`.env.example`](./../.env.example). The key one
 | `SUPABASE_URL`             | **yes**  | Your Supabase project URL. Must match the `iss` claim in JWTs exactly - use `http://127.0.0.1:54321`, not `localhost`, for local Supabase.                                                                            |
 | `SUPABASE_PUBLISHABLE_KEY` | **yes**  | Supabase publishable (anon) key. Sent as `apikey` on every database request; the caller's bearer token is forwarded alongside it so Row Level Security still applies.                                                 |
 | `SUPABASE_JWT_SECRET`      | **yes*** | Shared HS256 JWT secret. Required for projects signing tokens with HS256 (production today). Projects on asymmetric keys (ES256/RS256) are verified via JWKS and can leave this blank.                                |
-| `ALLOWED_ORIGINS`          | no       | Comma-separated list of browser origins allowed to call `/mcp`. Native clients (no `Origin` header) are always allowed. Defaults to `https://inoh.app`. Add your web client's origin here or it will receive a `403`. |
+| `ALLOWED_ORIGINS`          | no       | Comma-separated list of browser origins allowed to call `/mcp`. Native clients (no `Origin` header) are always allowed. Defaults to `https://app.inoh.app`. Add your web client's origin here or it will receive a `403`. |
 
 Retrieve local values from your running Supabase instance:
 
