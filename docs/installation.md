@@ -11,7 +11,7 @@ https://mcp.inoh.app/mcp
 ```
 
 The first time you ask your AI to do something with Inoh, a sign-in tab will open in your
-browser. Sign in with your [Inoh account](https://inoh.app) and approve access. That is it.
+browser. Sign in with your [Inoh account](https://app.inoh.app) and approve access. That is it.
 
 Every step below installs Inoh **for your whole user account**, so it is available in every
 project and folder you work in. Where a tool can also install per-project, that is called out

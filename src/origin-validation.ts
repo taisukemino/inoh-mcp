@@ -17,7 +17,7 @@ const JSON_RPC_FORBIDDEN = -32000;
  * rejecting them would break every non-browser caller. Only a request that
  * claims a browser origin has to prove that origin is one we know.
  *
- * @param allowedOrigins - Exact origins to accept, e.g. `https://inoh.app`
+ * @param allowedOrigins - Exact origins to accept, e.g. `https://app.inoh.app`
  * @returns Express middleware that forbids unknown browser origins
  */
 export const createOriginValidation = (allowedOrigins: string[]): RequestHandler => {
