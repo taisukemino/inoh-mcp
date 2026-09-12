@@ -14,7 +14,7 @@ https://mcp.inoh.app/mcp
 
 ## Connecting
 
-You need a free [Inoh](https://inoh.app) account. Sign-in happens in your browser through Inoh's
+You need a free [Inoh](https://app.inoh.app) account. Sign-in happens in your browser through Inoh's
 normal email flow, so your AI client never sees your password, and you can revoke access at any
 time from your Inoh account settings.
 
